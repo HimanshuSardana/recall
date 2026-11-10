@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useSlideTo } from "@/components/transition-link";
+import { ChatLink, useSlideTo } from "@/components/transition-link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,10 +11,21 @@ import {
 import { authClient } from "@/lib/auth-client";
 
 /** One primary action with the two ways in: Google, or straight in as a guest. */
-export function OpenChatMenu() {
+export function OpenChatMenu({ googleEnabled }: { googleEnabled: boolean }) {
   const slideTo = useSlideTo();
   const { data } = authClient.useSession();
   const firstName = data?.user.name?.split(" ")[0];
+
+  if (!googleEnabled) {
+    return (
+      <ChatLink
+        className="ml-1 inline-flex h-8 items-center rounded-full bg-primary px-3.5 text-[12.5px] font-medium text-primary-foreground transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.97]"
+        href="/chat"
+      >
+        Open chat
+      </ChatLink>
+    );
+  }
 
   return (
     <DropdownMenu>

@@ -5,6 +5,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { ChatSurface } from "@/components/chat-surface";
 import { Sidebar } from "@/components/sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { googleEnabled } from "@/lib/config";
 
 export default function Chat() {
   return (
@@ -13,13 +14,15 @@ export default function Chat() {
         className="h-svh overflow-hidden font-sans"
         style={{ "--sidebar-width-icon": "2rem" } as CSSProperties}
       >
-        <Sidebar />
+        <Sidebar googleEnabled={googleEnabled} />
         <SidebarInset className="relative flex flex-col bg-background transition-colors duration-150 md:ml-0!">
-          <AuthButton
-            className="absolute top-3 right-3 z-10 inline-flex h-7 items-center rounded-full bg-primary px-3 text-[12px] font-medium text-primary-foreground transition-[color,background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.97]"
-            signedOutLabel="Log In"
-            signedInLabel="Sign out"
-          />
+          {googleEnabled && (
+            <AuthButton
+              className="absolute top-3 right-3 z-10 inline-flex h-7 items-center rounded-full bg-primary px-3 text-[12px] font-medium text-primary-foreground transition-[color,background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.97]"
+              signedOutLabel="Log In"
+              signedInLabel="Sign out"
+            />
+          )}
           <ChatSurface />
         </SidebarInset>
       </SidebarProvider>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LandingMotion } from "@/components/landing-motion";
 import { OpenChatMenu } from "@/components/open-chat-menu";
+import { googleEnabled } from "@/lib/config";
 import { Mark } from "@/components/mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ChatLink } from "@/components/transition-link";
@@ -90,7 +91,7 @@ export default function Landing() {
 
         <div className="flex items-center gap-1">
           <ThemeToggle className="mr-1" />
-          <OpenChatMenu />
+          <OpenChatMenu googleEnabled={googleEnabled} />
         </div>
       </header>
 

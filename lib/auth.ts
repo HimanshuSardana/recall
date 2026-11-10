@@ -2,17 +2,17 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { googleEnabled } from "@/lib/config";
 import { mintOwner, ownerCookie, ownerFrom } from "@/lib/identity";
 
-const google =
-  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-    ? {
-        google: {
-          clientId: process.env.GOOGLE_CLIENT_ID,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        },
-      }
-    : undefined;
+const google = googleEnabled
+  ? {
+      google: {
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      },
+    }
+  : undefined;
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
@@ -21,8 +21,6 @@ export const auth = betterAuth({
   socialProviders: google,
   session: { cookieCache: { enabled: true, maxAge: 60 } },
 });
-
-export const googleEnabled = Boolean(google);
 
 /** The signed-in user for a request, or null for a guest. */
 export async function sessionUser(request: Request) {

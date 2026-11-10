@@ -44,7 +44,7 @@ import { groupChats } from "@/lib/chat";
 
 const nav = [{ label: "New chat", icon: SquarePen }];
 
-export function Sidebar() {
+export function Sidebar({ googleEnabled }: { googleEnabled: boolean }) {
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
   const { data: session } = authClient.useSession();
   const name = session?.user.name ?? "Guest User";
@@ -193,11 +193,13 @@ export function Sidebar() {
         </Avatar>
         <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
           <p className="truncate text-[12px] font-medium text-foreground">{name}</p>
-          <AuthButton
-            className="text-left text-[11px] text-muted-foreground underline-offset-2 transition-colors duration-150 hover:text-foreground hover:underline"
-            signedOutLabel="Log In"
-            signedInLabel="Sign out"
-          />
+          {googleEnabled && (
+            <AuthButton
+              className="text-left text-[11px] text-muted-foreground underline-offset-2 transition-colors duration-150 hover:text-foreground hover:underline"
+              signedOutLabel="Log In"
+              signedInLabel="Sign out"
+            />
+          )}
         </div>
         <ThemeToggle className="ml-auto" />
       </SidebarFooter>
