@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- stored thumbnails are data URLs, not optimizable assets */
 
 import { ChevronDown, ChevronRight, FileText } from "lucide-react";
+import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Markdown } from "@/components/markdown";
 import type { Message, MessageAttachment, ToolCall } from "@/lib/chat";
@@ -93,7 +94,12 @@ function ToolSources({ calls }: { calls: ToolCall[] }) {
   }
 
   return (
-    <div className="mt-3">
+    <motion.div
+      className="mt-3"
+      initial={{ opacity: 0, y: 2 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+    >
       <div className="flex flex-wrap items-center gap-2">
         {recalledLine ? (
           <span className="text-[11.5px] text-muted-foreground/80">{recalledLine}</span>
@@ -161,7 +167,7 @@ function ToolSources({ calls }: { calls: ToolCall[] }) {
           )}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 

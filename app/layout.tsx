@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { MotionProvider } from "@/components/motion-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
@@ -28,7 +29,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="min-h-full">
-        <TooltipProvider delay={250}>{children}</TooltipProvider>
+        <MotionProvider>
+          <TooltipProvider delay={250}>{children}</TooltipProvider>
+        </MotionProvider>
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { Trash2, X } from "lucide-react";
+import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 
 type StoredTurn = {
@@ -159,7 +160,15 @@ export function Memories() {
         {entries.length > 0 && (
           <ol className="mt-7 border-l border-border pl-5">
             {entries.map((entry) => (
-              <li key={entry.id} data-reveal-host className="relative pb-6 last:pb-0">
+              <motion.li
+                key={entry.id}
+                data-reveal-host
+                layout="position"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ type: "spring", duration: 0.32, bounce: 0.14 }}
+                className="relative pb-6 last:pb-0"
+              >
                 <span className="absolute top-[7px] -left-[23px] size-1.5 rounded-full bg-border" />
 
                 <p className="text-[11px] text-muted-foreground/70">{stamp(entry.at, today)}</p>
@@ -168,7 +177,8 @@ export function Memories() {
                   <p className="mt-1 text-[14px] leading-relaxed text-foreground">{entry.answer}</p>
                 )}
 
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
                   type="button"
                   data-reveal
                   aria-label={`Forget ${entry.question}`}
@@ -177,8 +187,8 @@ export function Memories() {
                 >
                   <X className="size-3" strokeWidth={2} />
                   Forget
-                </button>
-              </li>
+                </motion.button>
+              </motion.li>
             ))}
           </ol>
         )}

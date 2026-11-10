@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- local previews are blob URLs, not optimizable assets */
 
 import { ArrowUp, Check, ChevronDown, FileText, ImagePlus, Mic, Plus, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   type ClipboardEvent,
   type DragEvent,
@@ -338,26 +339,30 @@ export function Composer({ className }: { className?: string }) {
           >
             <Mic strokeWidth={1.7} />
           </Button>
-          {streaming ? (
-            <Button
-              size="icon-sm"
-              aria-label="Stop"
-              onClick={stop}
-              className="enter-pop rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <span className="size-2.5 rounded-[2px] bg-primary-foreground" />
-            </Button>
-          ) : (
-            <Button
-              size="icon-sm"
-              aria-label="Send"
-              onClick={submit}
-              disabled={!prompt.trim() && attachments.length === 0}
-              className="enter-pop rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-foreground/10 disabled:text-foreground/40 disabled:opacity-100"
-            >
-              <ArrowUp strokeWidth={2} />
-            </Button>
-          )}
+          <Button
+            size="icon-sm"
+            aria-label={streaming ? "Stop" : "Send"}
+            onClick={streaming ? stop : submit}
+            disabled={!streaming && !prompt.trim() && attachments.length === 0}
+            className="relative rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-foreground/10 disabled:text-foreground/40 disabled:opacity-100"
+          >
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={streaming ? "stop" : "send"}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+                className="grid place-items-center"
+              >
+                {streaming ? (
+                  <span className="size-2.5 rounded-[2px] bg-primary-foreground" />
+                ) : (
+                  <ArrowUp strokeWidth={2} />
+                )}
+              </motion.span>
+            </AnimatePresence>
+          </Button>
         </div>
       </div>
     </div>

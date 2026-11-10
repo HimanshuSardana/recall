@@ -1,12 +1,20 @@
 "use client";
 
+import { AnimatePresence, motion } from "motion/react";
 import { useLayoutEffect, useRef } from "react";
 import { useChat } from "@/components/chat-provider";
 import { ChatThread } from "@/components/chat-thread";
-import { Memories } from "@/components/memories";
 import { Composer } from "@/components/composer";
+import { Memories } from "@/components/memories";
 
 const CURVE = "cubic-bezier(0.65, 0, 0.35, 1)";
+
+const VIEW = {
+  initial: { opacity: 0, y: 2 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -2 },
+  transition: { duration: 0.14, ease: [0.23, 1, 0.32, 1] as const },
+};
 
 export function ChatSurface() {
   const { activeChat, streaming, enteringChatId, memoriesOpen } = useChat();
@@ -47,36 +55,42 @@ export function ChatSurface() {
     lastHero.current = hero;
   }, [hero]);
 
-  if (memoriesOpen) {
-    return <Memories />;
-  }
-
   return (
-    <div
-      className={
-        hero
-          ? "flex flex-1 flex-col items-center justify-center px-6"
-          : "flex min-h-0 flex-1 flex-col px-6"
-      }
-    >
-      {hero ? (
-        <h1 className="mb-5 text-[28px] font-normal tracking-[-0.01em] text-foreground">
-          Hello, Guest
-        </h1>
+    <AnimatePresence mode="wait" initial={false}>
+      {memoriesOpen ? (
+        <motion.div key="memories" {...VIEW} className="flex min-h-0 flex-1 flex-col">
+          <Memories />
+        </motion.div>
       ) : (
-        <ChatThread
-          messages={messages}
-          streaming={streaming}
-          entering={activeChat?.id === enteringChatId}
-        />
-      )}
+        <motion.div
+          key="chat"
+          {...VIEW}
+          className={
+            hero
+              ? "flex flex-1 flex-col items-center justify-center px-6"
+              : "flex min-h-0 flex-1 flex-col px-6"
+          }
+        >
+          {hero ? (
+            <h1 className="mb-5 text-[28px] font-normal tracking-[-0.01em] text-foreground">
+              Hello, Guest
+            </h1>
+          ) : (
+            <ChatThread
+              messages={messages}
+              streaming={streaming}
+              entering={activeChat?.id === enteringChatId}
+            />
+          )}
 
-      <div
-        ref={composer}
-        className={hero ? "w-full max-w-[480px]" : "mx-auto w-full max-w-[720px] pb-4"}
-      >
-        <Composer />
-      </div>
-    </div>
+          <div
+            ref={composer}
+            className={hero ? "w-full max-w-[480px]" : "mx-auto w-full max-w-[720px] pb-4"}
+          >
+            <Composer />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Brain, Ellipsis, Search, SquarePen } from "lucide-react";
+import { motion } from "motion/react";
 import { useState } from "react";
 import {
   SidebarContent,
@@ -64,14 +65,14 @@ export function Sidebar() {
         >
           <path d="M1 1h10L6.8 7 11 13H1l4.2-6z" />
         </svg>
-        <span className="text-[12.5px] leading-none font-semibold tracking-tight text-foreground group-data-[collapsible=icon]:hidden">
+        <span className="sidebar-fade sidebar-fade-inline text-[12.5px] leading-none font-semibold tracking-tight text-foreground">
           Kraken
         </span>
         <Button
           variant="ghost"
           size="icon-sm"
           aria-label="Search"
-          className="ml-auto size-7 text-muted-foreground hover:bg-accent group-data-[collapsible=icon]:hidden"
+          className="sidebar-fade sidebar-fade-inline ml-auto size-7 text-muted-foreground hover:bg-accent"
         >
           <Search strokeWidth={1.7} />
         </Button>
@@ -107,7 +108,7 @@ export function Sidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        <div className="pb-8 transition-[opacity,visibility] duration-150 ease-out group-data-[collapsible=icon]:invisible group-data-[collapsible=icon]:opacity-0">
+        <div className="sidebar-fade pb-8">
           {loaded && groups.length === 0 && (
             <p className="px-3 pt-6 text-[11.5px] leading-relaxed text-muted-foreground">
               No chats yet. Ask something and it will show up here.
@@ -120,7 +121,15 @@ export function Sidebar() {
               </SidebarGroupLabel>
               <SidebarMenu>
                 {items.map((chat) => (
-                  <SidebarMenuItem key={chat.id} data-reveal-host>
+                  <motion.li
+                    key={chat.id}
+                    data-reveal-host
+                    layout="position"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ type: "spring", duration: 0.32, bounce: 0.14 }}
+                    className="relative"
+                  >
                     <SidebarMenuButton
                       isActive={chat.id === activeChat?.id}
                       className="h-6.5 gap-2 pr-7 pl-2 text-[12px] font-normal text-muted-foreground data-active:font-normal data-active:text-foreground"
@@ -132,12 +141,14 @@ export function Sidebar() {
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         render={
-                          <button
+                          <motion.button
+                            whileTap={{ scale: 0.9 }}
                             type="button"
                             aria-label={`Actions for ${chat.title}`}
                             data-reveal
                             className="absolute top-1/2 right-1 grid size-5 -translate-y-1/2 place-items-center rounded text-muted-foreground/70 opacity-0 transition-[opacity,color] duration-150 hover:text-foreground"
                           />
+
                         }
                       >
                         <Ellipsis className="size-3.5" strokeWidth={2} />
@@ -155,7 +166,7 @@ export function Sidebar() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </SidebarMenuItem>
+                  </motion.li>
                 ))}
               </SidebarMenu>
             </SidebarGroup>

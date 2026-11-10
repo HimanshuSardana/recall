@@ -129,6 +129,30 @@
   }
 }
 
+/* Sidebar content fades out ahead of the panel's width change, and comes back
+   only once the panel is most of the way open — otherwise labels vanish and
+   rows snap while the rail is still wide. */
+.sidebar-fade {
+  transition:
+    opacity 150ms ease-out 100ms,
+    visibility 0s 100ms;
+}
+
+/* Header items leave the flex flow as they fade, so the trigger can centre
+   in the rail instead of being pushed out by invisible siblings. */
+[data-collapsible="icon"] .sidebar-fade-inline {
+  position: absolute;
+}
+
+[data-collapsible="icon"] .sidebar-fade {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 100ms ease-out,
+    visibility 0s 100ms;
+}
+
 /* Hover-revealed controls. Written as CSS rather than Tailwind's group-hover
    variant because that compiles to a zero-specificity :where() selector which
    loses to the control's own opacity-0 utility. */
