@@ -6,7 +6,7 @@ import { Mark } from "@/components/mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ChatLink } from "@/components/transition-link";
 
-const REPO = "https://github.com/HimanshuSardana/minimi-agent";
+const REPO = "https://github.com/HimanshuSardana/recall";
 
 export const metadata: Metadata = {
   title: "recall — a chat agent that remembers",
