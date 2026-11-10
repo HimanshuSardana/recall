@@ -296,11 +296,13 @@ export function Composer({ className }: { className?: string }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="group gap-1 pr-1 pl-1.5 text-[13px] font-medium text-foreground hover:bg-accent"
+                  className="group h-7 gap-1 px-1.5 text-[12px] font-normal text-muted-foreground hover:bg-accent hover:text-foreground aria-expanded:text-foreground"
                 />
               }
             >
-              {selected?.label ?? "Model"}
+              <span className="max-w-[18ch] truncate leading-none" title={selected?.label}>
+                {selected?.label ?? "Model"}
+              </span>
               <ChevronDown
                 className="size-3 text-muted-foreground transition-transform duration-150 ease-out group-aria-expanded:rotate-180"
                 strokeWidth={1.8}
