@@ -129,13 +129,26 @@
   }
 }
 
+/* The rail's geometry, as a named rule rather than utility variants so it is
+   easy to verify in DevTools (and cannot be merged away by cn()). */
+.sidebar-panel {
+  transition:
+    width 240ms cubic-bezier(0.65, 0, 0.35, 1),
+    left 240ms cubic-bezier(0.65, 0, 0.35, 1),
+    right 240ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.sidebar-gutter {
+  transition: width 240ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
 /* Sidebar content fades out ahead of the panel's width change, and comes back
    only once the panel is most of the way open — otherwise labels vanish and
    rows snap while the rail is still wide. */
 .sidebar-fade {
   transition:
-    opacity 150ms ease-out 100ms,
-    visibility 0s 100ms;
+    opacity 120ms ease-out 80ms,
+    visibility 0s 80ms;
 }
 
 /* Header items leave the flex flow as they fade, so the trigger can centre
@@ -149,8 +162,8 @@
   visibility: hidden;
   pointer-events: none;
   transition:
-    opacity 100ms ease-out,
-    visibility 0s 100ms;
+    opacity 80ms ease-out,
+    visibility 0s 80ms;
 }
 
 /* Hover-revealed controls. Written as CSS rather than Tailwind's group-hover
@@ -267,7 +280,8 @@ pre {
 /* The keyboard toggle sets this so a repeated action collapses instantly. */
 [data-instant] [data-slot="sidebar-gap"],
 [data-instant] [data-slot="sidebar-container"],
-[data-instant] [data-slot="sidebar-menu-button"] {
+[data-instant] [data-slot="sidebar-menu-button"],
+[data-instant] .sidebar-fade {
   transition: none !important;
 }
 
