@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  BookText,
-  Ellipsis,
-  Folder,
-  Plug,
-  Search,
-  SquarePen,
-} from "lucide-react";
+import { Ellipsis, Search, SquarePen } from "lucide-react";
 import {
   SidebarContent,
   SidebarFooter,
@@ -27,12 +20,7 @@ import { useChat } from "@/components/chat-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { groupChats } from "@/lib/chat";
 
-const nav = [
-  { label: "New chat", icon: SquarePen },
-  { label: "Library", icon: BookText },
-  { label: "Projects", icon: Folder },
-  { label: "Plugins", icon: Plug },
-];
+const nav = [{ label: "New chat", icon: SquarePen }];
 
 export function Sidebar() {
   const { chats, activeChat, dayStart, loaded, openChat, startNewChat } = useChat();
