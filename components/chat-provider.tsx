@@ -142,6 +142,25 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       setActiveId(chatId);
       setStreaming(true);
 
+      if (!existing) {
+        // Named from the first message while the reply streams; the provisional
+        // title is already showing, so this only sharpens it.
+        void fetch("/v1/chat/title", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: content }),
+        })
+          .then((response) => (response.ok ? response.json() : null))
+          .then((payload: { title?: string } | null) => {
+            const title = payload?.title?.trim();
+            if (!title) return;
+            setChats((previous) =>
+              previous.map((chat) => (chat.id === chatId ? { ...chat, title } : chat)),
+            );
+          })
+          .catch(() => {});
+      }
+
       const assistantId = newId();
       setChats((previous) =>
         previous.map((chat) =>
