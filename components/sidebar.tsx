@@ -145,12 +145,20 @@ export function Sidebar() {
       <SidebarFooter className="flex-row items-center gap-2 px-3 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
         <Avatar size="sm" className="size-5 shrink-0">
           <AvatarFallback className="bg-primary text-[9px] font-medium text-primary-foreground">
-            ME
+            GU
           </AvatarFallback>
         </Avatar>
-        <span className="text-[12px] font-medium text-foreground group-data-[collapsible=icon]:hidden">
-          Milo Eric
-        </span>
+        <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
+          <p className="truncate text-[12px] font-medium text-foreground">
+            Guest User
+          </p>
+          <a
+            href="#"
+            className="text-[11px] text-muted-foreground underline-offset-2 transition-colors duration-150 hover:text-foreground hover:underline"
+          >
+            Log In
+          </a>
+        </div>
         <ThemeToggle />
       </SidebarFooter>
       <SidebarRail />
