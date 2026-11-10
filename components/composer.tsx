@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- local previews are blob URLs, not optimizable assets */
 
 import { ArrowUp, Check, ChevronDown, FileText, ImagePlus, Mic, Plus, X } from "lucide-react";
-import { type DragEvent, type KeyboardEvent, useRef, useState } from "react";
+import { type ClipboardEvent, type DragEvent, type KeyboardEvent, useRef, useState } from "react";
 import { useChat } from "@/components/chat-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,13 @@ type Attachment = {
   url?: string;
 };
 
+/** Clipboard images arrive as "image.png", which makes every pasted shot look alike. */
+function rename(file: File) {
+  if (file.name && file.name !== "image.png") return file;
+  const stamp = new Date().toISOString().slice(11, 19).replaceAll(":", "");
+  return new File([file], `pasted-${stamp}.png`, { type: file.type });
+}
+
 function extension(name: string) {
   const dot = name.lastIndexOf(".");
   return dot === -1 ? "file" : name.slice(dot + 1);
@@ -43,11 +50,12 @@ export function Composer({ className }: { className?: string }) {
   const selected = models.find((option) => option.id === model);
   const full = attachments.length >= MAX_ATTACHMENTS;
 
-  const add = (list: FileList | null) => {
+  const add = (list: FileList | File[] | null) => {
     if (!list?.length) return;
 
-    const accepted = Array.from(list).filter((file) => file.size <= MAX_BYTES);
-    const oversize = list.length - accepted.length;
+    const incoming = Array.from(list);
+    const accepted = incoming.filter((file) => file.size <= MAX_BYTES).map(rename);
+    const oversize = incoming.length - accepted.length;
     setRejected(oversize ? `${oversize} file(s) over 10 MB were skipped` : "");
 
     setAttachments((previous) =>
@@ -74,6 +82,13 @@ export function Composer({ className }: { className?: string }) {
     setAttachments([]);
     setRejected("");
     setPrompt("");
+  };
+
+  const onPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = Array.from(event.clipboardData.files);
+    if (pasted.length === 0 || full) return;
+    event.preventDefault();
+    add(pasted);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -191,6 +206,7 @@ export function Composer({ className }: { className?: string }) {
         value={prompt}
         onChange={(event) => setPrompt(event.target.value)}
         onKeyDown={onKeyDown}
+        onPaste={onPaste}
         placeholder="How can I help you today?"
         className="min-h-[52px] resize-none border-0 bg-transparent px-2 py-1.5 text-[14px] shadow-none placeholder:text-muted-foreground/80 dark:bg-transparent focus-visible:ring-0"
       />
@@ -235,7 +251,7 @@ export function Composer({ className }: { className?: string }) {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <p className="border-t border-border px-1.5 pt-1.5 pb-0.5 text-[11px] text-muted-foreground">
-              {full ? "Remove one to add another" : "…or drop them on the composer"}
+              {full ? "Remove one to add another" : "…or drop and paste them here"}
             </p>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -29,6 +29,26 @@ type ChatContextValue = {
 
 const ChatContext = createContext<ChatContextValue | null>(null);
 
+const THUMBNAIL_SIZE = 560;
+
+/** A small JPEG the transcript can keep in localStorage, since the source File cannot survive a reload. */
+async function makeThumbnail(file: File) {
+  if (!file.type.startsWith("image/")) return undefined;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, THUMBNAIL_SIZE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    return canvas.toDataURL("image/jpeg", 0.65);
+  } catch {
+    return undefined;
+  }
+}
+
 const readAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -115,13 +135,23 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       const prompt = text.trim();
       if ((!prompt && files.length === 0) || streaming) return;
 
+      const attachments = await Promise.all(
+        files.map(async (file) => ({
+          name: file.name,
+          type: file.type,
+          thumbnail: await makeThumbnail(file),
+        })),
+      );
       const names = files.map((file) => file.name);
-      const content = names.length
-        ? [prompt, `Attached: ${names.join(", ")}`].filter(Boolean).join("\n\n")
-        : prompt;
+      const content = prompt;
 
       const now = Date.now();
-      const userMessage: Message = { id: newId(), role: "user", content };
+      const userMessage: Message = {
+        id: newId(),
+        role: "user",
+        content,
+        ...(attachments.length ? { attachments } : {}),
+      };
       const existing = activeChat;
       const chatId = existing?.id ?? newId();
 
@@ -132,14 +162,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                   ...chat,
                   messages: [...chat.messages, userMessage],
                   updatedAt: now,
-                  title: chat.messages.length ? chat.title : titleFrom(content),
+                  title: chat.messages.length ? chat.title : titleFrom(content || names[0] || ""),
                 }
               : chat,
           )
         : [
             {
               id: chatId,
-              title: titleFrom(content),
+              title: titleFrom(content || names[0] || "New chat"),
               messages: [userMessage],
               createdAt: now,
               updatedAt: now,
@@ -199,6 +229,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             })),
         );
 
+        const requestText = names.length
+          ? [prompt, `Attached: ${names.join(", ")}`].filter(Boolean).join("\n\n")
+          : prompt;
+
         const response = await fetch("/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -211,8 +245,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
               {
                 role: "user",
                 content: imageParts.length
-                  ? [{ type: "text", text: content }, ...imageParts]
-                  : content,
+                  ? [...(requestText ? [{ type: "text", text: requestText }] : []), ...imageParts]
+                  : requestText,
               },
             ],
           }),
