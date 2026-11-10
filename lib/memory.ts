@@ -1,43 +1,13 @@
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { and, eq, inArray } from "drizzle-orm";
+import { db, sqlite } from "@/db";
+import { turns } from "@/db/schema";
 
 export type Role = "user" | "assistant";
 export type StoredTurn = { at: number; role: Role; text: string };
+export type ListedTurn = StoredTurn & { id: string; chat: string };
 
-const DIR = join(process.cwd(), "data");
-const FILE = join(DIR, "memory.db");
 const OWNER_LIMIT = 2000;
 const DAY = 24 * 60 * 60 * 1000;
-
-let database: DatabaseSync | null = null;
-
-function db() {
-  if (database) return database;
-
-  mkdirSync(DIR, { recursive: true });
-  database = new DatabaseSync(FILE);
-  database.exec(`
-    PRAGMA journal_mode = WAL;
-    PRAGMA foreign_keys = ON;
-
-    CREATE TABLE IF NOT EXISTS turns (
-      id TEXT PRIMARY KEY,
-      owner TEXT NOT NULL,
-      chat TEXT NOT NULL,
-      at INTEGER NOT NULL,
-      role TEXT NOT NULL,
-      text TEXT NOT NULL
-    );
-
-    CREATE INDEX IF NOT EXISTS turns_owner_at ON turns(owner, at DESC);
-
-    CREATE VIRTUAL TABLE IF NOT EXISTS turns_fts
-      USING fts5(text, turn_id UNINDEXED, tokenize = 'porter');
-  `);
-
-  return database;
-}
 
 export function rememberTurn(turn: {
   owner: string;
@@ -50,22 +20,23 @@ export function rememberTurn(turn: {
   if (!text) return;
 
   const at = turn.at ?? Date.now();
-  const handle = db();
 
   // A retried request must not become a second memory of the same sentence.
-  const last = handle
-    .prepare("SELECT role, text FROM turns WHERE owner = ? AND chat = ? ORDER BY at DESC LIMIT 1")
-    .get(turn.owner, turn.chat) as { role?: string; text?: string } | undefined;
+  const last = db
+    .select({ role: turns.role, text: turns.text })
+    .from(turns)
+    .where(and(eq(turns.owner, turn.owner), eq(turns.chat, turn.chat)))
+    .orderBy(turns.at)
+    .limit(1)
+    .get();
 
   if (last?.role === turn.role && last.text === text) return;
 
   const id = crypto.randomUUID();
-  handle
-    .prepare("INSERT INTO turns (id, owner, chat, at, role, text) VALUES (?, ?, ?, ?, ?, ?)")
-    .run(id, turn.owner, turn.chat, at, turn.role, text);
-  handle.prepare("INSERT INTO turns_fts (text, turn_id) VALUES (?, ?)").run(text, id);
+  db.insert(turns).values({ id, owner: turn.owner, chat: turn.chat, at, role: turn.role, text }).run();
+  sqlite.prepare("INSERT INTO turns_fts (text, turn_id) VALUES (?, ?)").run(text, id);
 
-  handle
+  sqlite
     .prepare(
       `DELETE FROM turns WHERE owner = ? AND id NOT IN (
          SELECT id FROM turns WHERE owner = ? ORDER BY at DESC LIMIT ${OWNER_LIMIT}
@@ -74,57 +45,32 @@ export function rememberTurn(turn: {
     .run(turn.owner, turn.owner);
 }
 
-export type ListedTurn = StoredTurn & { id: string; chat: string };
-
 export function listTurns(owner: string, limit = 200): ListedTurn[] {
-  const rows = db()
-    .prepare(
-      "SELECT id, chat, at, role, text FROM turns WHERE owner = ? ORDER BY at DESC LIMIT ?",
-    )
-    .all(owner, limit) as { id: string; chat: string; at: number; role: Role; text: string }[];
+  const rows = db.select().from(turns).where(eq(turns.owner, owner)).all();
 
-  return rows.reverse().map((row) => ({
-    id: row.id,
-    chat: row.chat,
-    at: row.at,
-    role: row.role,
-    text: row.text.slice(0, 600),
-  }));
-}
-
-function forget(owner: string, where: string, params: (string | number)[]) {
-  const handle = db();
-  handle
-    .prepare(
-      `DELETE FROM turns_fts WHERE turn_id IN (SELECT id FROM turns WHERE ${where})`,
-    )
-    .run(...params);
-  const result = handle.prepare(`DELETE FROM turns WHERE ${where}`).run(...params);
-  return Number(result.changes ?? 0);
-}
-
-export function forgetTurns(owner: string, ids: string[]) {
-  if (ids.length === 0) return 0;
-  const placeholders = ids.map(() => "?").join(", ");
-  return forget(owner, `owner = ? AND id IN (${placeholders})`, [owner, ...ids]);
-}
-
-export function clearTurns(owner: string) {
-  return forget(owner, "owner = ?", [owner]);
-}
-
-export function clearChat(owner: string, chat: string) {
-  return forget(owner, "owner = ? AND chat = ?", [owner, chat]);
+  return rows
+    .sort((a, b) => a.at - b.at)
+    .slice(-limit)
+    .map((row) => ({
+      id: row.id,
+      chat: row.chat,
+      at: row.at,
+      role: row.role as Role,
+      text: row.text.slice(0, 600),
+    }));
 }
 
 export function recentAsks(owner: string, limit = 5): StoredTurn[] {
-  const rows = db()
-    .prepare(
-      "SELECT at, text FROM turns WHERE owner = ? AND role = 'user' ORDER BY at DESC LIMIT ?",
-    )
-    .all(owner, limit) as { at: number; text: string }[];
+  const rows = db
+    .select({ at: turns.at, text: turns.text })
+    .from(turns)
+    .where(and(eq(turns.owner, owner), eq(turns.role, "user")))
+    .all();
 
-  return rows.reverse().map((row) => ({ at: row.at, role: "user" as const, text: row.text }));
+  return rows
+    .sort((a, b) => a.at - b.at)
+    .slice(-limit)
+    .map((row) => ({ at: row.at, role: "user" as const, text: row.text }));
 }
 
 function ftsQuery(query: string) {
@@ -146,45 +92,62 @@ export function recallTurns(options: {
 }): StoredTurn[] {
   const { owner, query, from, to, limit = 8 } = options;
 
-  const clauses: string[] = ["t.owner = ?"];
-  const params: (string | number)[] = [owner];
-
-  if (from) {
-    clauses.push("t.at >= ?");
-    params.push(Date.parse(`${from}T00:00:00Z`));
-  }
-
-  if (to) {
-    clauses.push("t.at < ?");
-    params.push(Date.parse(`${to}T00:00:00Z`) + DAY);
-  }
+  const fromAt = from ? Date.parse(`${from}T00:00:00Z`) : -Infinity;
+  const toAt = to ? Date.parse(`${to}T00:00:00Z`) + DAY : Infinity;
 
   const terms = query ? ftsQuery(query) : "";
 
-  const rows = terms
-    ? (db()
-        .prepare(
-          `SELECT t.at, t.role, t.text
-             FROM turns_fts f
-             JOIN turns t ON t.id = f.turn_id
-            WHERE turns_fts MATCH ? AND ${clauses.join(" AND ")}
-            ORDER BY t.at DESC
-            LIMIT ?`,
-        )
-        .all(terms, ...params, limit) as { at: number; role: Role; text: string }[])
-    : (db()
-        .prepare(
-          `SELECT t.at, t.role, t.text
-             FROM turns t
-            WHERE ${clauses.join(" AND ")}
-            ORDER BY t.at DESC
-            LIMIT ?`,
-        )
-        .all(...params, limit) as { at: number; role: Role; text: string }[]);
+  if (terms) {
+    const rows = sqlite
+      .prepare(
+        `SELECT t.at AS at, t.role AS role, t.text AS text
+           FROM turns_fts f
+           JOIN turns t ON t.id = f.turn_id
+          WHERE turns_fts MATCH ? AND t.owner = ? AND t.at >= ? AND t.at < ?
+          ORDER BY t.at DESC
+          LIMIT ?`,
+      )
+      .all(terms, owner, fromAt === -Infinity ? 0 : fromAt, toAt === Infinity ? Number.MAX_SAFE_INTEGER : toAt, limit) as StoredTurn[];
 
-  return rows.reverse().map((row) => ({
-    at: row.at,
-    role: row.role,
-    text: row.text.slice(0, 600),
-  }));
+    return rows
+      .reverse()
+      .map((row) => ({ at: row.at, role: row.role, text: row.text.slice(0, 600) }));
+  }
+
+  const rows = db.select().from(turns).where(eq(turns.owner, owner)).all();
+
+  return rows
+    .filter((row) => row.at >= fromAt && row.at < toAt)
+    .sort((a, b) => a.at - b.at)
+    .slice(-limit)
+    .map((row) => ({ at: row.at, role: row.role as Role, text: row.text.slice(0, 600) }));
+}
+
+function forget(owner: string, where: string, params: (string | number)[]) {
+  const ids = sqlite
+    .prepare(`SELECT id FROM turns WHERE ${where}`)
+    .all(...params) as { id: string }[];
+
+  if (ids.length > 0) {
+    sqlite
+      .prepare(`DELETE FROM turns_fts WHERE turn_id IN (${ids.map(() => "?").join(", ")})`)
+      .run(...ids.map((row) => row.id));
+  }
+
+  const result = sqlite.prepare(`DELETE FROM turns WHERE ${where}`).run(...params);
+  return Number(result.changes ?? 0);
+}
+
+export function forgetTurns(owner: string, ids: string[]) {
+  if (ids.length === 0) return 0;
+  const placeholders = ids.map(() => "?").join(", ");
+  return forget(owner, `owner = ? AND id IN (${placeholders})`, [owner, ...ids]);
+}
+
+export function clearTurns(owner: string) {
+  return forget(owner, "owner = ?", [owner]);
+}
+
+export function clearChat(owner: string, chat: string) {
+  return forget(owner, "owner = ? AND chat = ?", [owner, chat]);
 }

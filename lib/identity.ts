@@ -1,7 +1,7 @@
 const COOKIE = "kraken_owner";
 
 /** Guest memory is scoped to a year-long httpOnly cookie the server owns, so a
- *  reload keeps it without an account. Signing in would reassign the owner. */
+ *  reload keeps it without an account. Signing in replaces this with the user id. */
 export function ownerFrom(request: Request) {
   const header = request.headers.get("cookie") ?? "";
   const match = header.match(new RegExp(`(?:^|;\\s*)${COOKIE}=([^;]+)`));

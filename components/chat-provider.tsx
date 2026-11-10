@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { authClient } from "@/lib/auth-client";
 import {
   type Chat,
   type Message,
@@ -83,17 +84,44 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [enteringChatId, setEnteringChatId] = useState<string | null>(null);
   const [memoriesOpen, setMemoriesOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const { data: session, isPending: sessionLoading } = authClient.useSession();
+  const signedIn = Boolean(session?.user);
+  const synced = useRef(new Map<string, string>());
   const abortRef = useRef<AbortController | null>(null);
   const [model, setModelState] = useState("");
 
+  const signedInRef = useRef(signedIn);
+  signedInRef.current = signedIn;
+
   useEffect(() => {
-    // localStorage is only readable on the client, so the first paint has no
-    // history to show. Hydrating the store here is the point of the effect.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setChats(loadChats());
-    setDayStart(startOfDay(new Date()));
-    setLoaded(true);
-  }, []);
+    if (sessionLoading) return;
+    let live = true;
+
+    if (signedInRef.current) {
+      fetch("/api/chats")
+        .then((response) => (response.ok ? response.json() : { chats: [] }))
+        .then((payload: { chats?: Chat[] }) => {
+          if (!live) return;
+          setChats(payload.chats ?? []);
+          setDayStart(startOfDay(new Date()));
+          setLoaded(true);
+        })
+        .catch(() => {
+          if (live) setLoaded(true);
+        });
+    } else {
+      // localStorage is only readable on the client, so the first paint has no
+      // history to show. Hydrating the store here is the point of the effect.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setChats(loadChats());
+      setDayStart(startOfDay(new Date()));
+      setLoaded(true);
+    }
+
+    return () => {
+      live = false;
+    };
+  }, [sessionLoading, signedIn]);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,9 +152,35 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loaded) return;
-    const timer = setTimeout(() => saveChats(chats), 250);
-    return () => clearTimeout(timer);
-  }, [chats, loaded]);
+
+    if (!signedIn) {
+      const local = setTimeout(() => saveChats(chats), 250);
+      return () => clearTimeout(local);
+    }
+
+    // Signed in: mirror each changed chat to the server, and drop the ones
+    // that left the list.
+    const remote = setTimeout(() => {
+      for (const chat of chats) {
+        const fingerprint = JSON.stringify(chat);
+        if (synced.current.get(chat.id) === fingerprint) continue;
+        synced.current.set(chat.id, fingerprint);
+        fetch("/api/chats", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat }),
+        }).catch(() => {});
+      }
+
+      for (const id of [...synced.current.keys()]) {
+        if (chats.some((chat) => chat.id === id)) continue;
+        synced.current.delete(id);
+        fetch(`/api/chats?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
+      }
+    }, 500);
+
+    return () => clearTimeout(remote);
+  }, [chats, loaded, signedIn]);
 
   const value = useMemo<ChatContextValue>(() => {
     const activeChat = chats.find((chat) => chat.id === activeId) ?? null;

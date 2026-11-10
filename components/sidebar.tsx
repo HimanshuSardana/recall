@@ -1,6 +1,7 @@
 "use client";
 
 import { Brain, Ellipsis, Search, SquarePen } from "lucide-react";
+import Link from "next/link";
 import { motion } from "motion/react";
 import { useState } from "react";
 import {
@@ -16,7 +17,9 @@ import {
   SidebarTrigger,
   Sidebar as SidebarShell,
 } from "@/components/ui/sidebar";
+import { AuthButton } from "@/components/auth-button";
 import { Mark } from "@/components/mark";
+import { authClient } from "@/lib/auth-client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -43,6 +46,14 @@ const nav = [{ label: "New chat", icon: SquarePen }];
 
 export function Sidebar() {
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
+  const { data: session } = authClient.useSession();
+  const name = session?.user.name ?? "Guest User";
+  const initials = name
+    .split("\s")
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
   const {
     chats,
     activeChat,
@@ -61,10 +72,12 @@ export function Sidebar() {
   return (
     <SidebarShell variant="inset" collapsible="icon">
       <SidebarHeader className="h-9 flex-row items-center gap-2 pr-1.5 pl-4 py-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-        <Mark className="size-3.5 shrink-0 text-foreground group-data-[collapsible=icon]:hidden" />
+        <Link href="/" className="flex items-center gap-2">
+          <Mark className="size-3.5 shrink-0 text-foreground group-data-[collapsible=icon]:hidden" />
         <span className="sidebar-fade sidebar-fade-inline text-[12.5px] leading-none font-semibold tracking-tight text-foreground">
-          recall
-        </span>
+            recall
+          </span>
+        </Link>
         <Button
           variant="ghost"
           size="icon-sm"
@@ -175,19 +188,16 @@ export function Sidebar() {
       <SidebarFooter className="flex-row items-center gap-2 px-3 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
         <Avatar size="sm" className="size-5 shrink-0">
           <AvatarFallback className="bg-primary text-[9px] font-medium text-primary-foreground">
-            GU
+            {initials || "GU"}
           </AvatarFallback>
         </Avatar>
         <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-          <p className="truncate text-[12px] font-medium text-foreground">
-            Guest User
-          </p>
-          <a
-            href="#"
-            className="text-[11px] text-muted-foreground underline-offset-2 transition-colors duration-150 hover:text-foreground hover:underline"
-          >
-            Log In
-          </a>
+          <p className="truncate text-[12px] font-medium text-foreground">{name}</p>
+          <AuthButton
+            className="text-left text-[11px] text-muted-foreground underline-offset-2 transition-colors duration-150 hover:text-foreground hover:underline"
+            signedOutLabel="Log In"
+            signedInLabel="Sign out"
+          />
         </div>
         <ThemeToggle />
       </SidebarFooter>
