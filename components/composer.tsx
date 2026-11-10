@@ -44,6 +44,8 @@ export function Composer({ className }: { className?: string }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [rejected, setRejected] = useState("");
   const [dragging, setDragging] = useState(false);
+  const [closingDrop, setClosingDrop] = useState(false);
+  const [leaving, setLeaving] = useState<string[]>([]);
   const images = useRef<HTMLInputElement>(null);
   const documents = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
@@ -71,8 +73,13 @@ export function Composer({ className }: { className?: string }) {
   };
 
   const remove = (attachment: Attachment) => {
-    if (attachment.url) URL.revokeObjectURL(attachment.url);
-    setAttachments((previous) => previous.filter((item) => item.id !== attachment.id));
+    // Fade the tile out first; the row collapses once it is gone.
+    setLeaving((previous) => [...previous, attachment.id]);
+    window.setTimeout(() => {
+      if (attachment.url) URL.revokeObjectURL(attachment.url);
+      setAttachments((previous) => previous.filter((item) => item.id !== attachment.id));
+      setLeaving((previous) => previous.filter((id) => id !== attachment.id));
+    }, 120);
   };
 
   const submit = () => {
@@ -103,6 +110,13 @@ export function Composer({ className }: { className?: string }) {
     event.preventDefault();
   };
 
+  const endDrag = () => {
+    dragDepth.current = 0;
+    setDragging(false);
+    setClosingDrop(true);
+    window.setTimeout(() => setClosingDrop(false), 120);
+  };
+
   return (
     <div
       className={cn(
@@ -118,15 +132,11 @@ export function Composer({ className }: { className?: string }) {
       onDragOver={onDragOver}
       onDragLeave={() => {
         dragDepth.current -= 1;
-        if (dragDepth.current <= 0) {
-          dragDepth.current = 0;
-          setDragging(false);
-        }
+        if (dragDepth.current <= 0) endDrag();
       }}
       onDrop={(event) => {
         event.preventDefault();
-        dragDepth.current = 0;
-        setDragging(false);
+        endDrag();
         if (!full) add(event.dataTransfer.files);
       }}
     >
@@ -152,8 +162,13 @@ export function Composer({ className }: { className?: string }) {
         }}
       />
 
-      {dragging && (
-        <div className="pointer-events-none absolute inset-0 z-10 grid animate-in fade-in-0 place-items-center rounded-[20px] border border-dashed border-ring/60 bg-card/85 text-[12px] text-muted-foreground duration-150">
+      {(dragging || closingDrop) && (
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-[20px] border border-dashed border-ring/60 bg-card/85 text-[12px] text-muted-foreground transition-opacity duration-[120ms] ease-out motion-reduce:transition-none",
+            dragging ? "opacity-100" : "opacity-0",
+          )}
+        >
           Drop to attach
         </div>
       )}
@@ -163,7 +178,10 @@ export function Composer({ className }: { className?: string }) {
           {attachments.map((attachment) => (
             <figure
               key={attachment.id}
-              className="group w-16 animate-in fade-in-0 zoom-in-95 duration-150 ease-out"
+              className={cn(
+                "group w-16 animate-in fade-in-0 zoom-in-95 duration-150 ease-out transition-[opacity,transform] duration-[120ms] ease-out motion-reduce:transition-none",
+                leaving.includes(attachment.id) && "scale-[0.96] opacity-0",
+              )}
             >
               <div className="relative size-16 overflow-hidden rounded-xl border border-border bg-background">
                 {attachment.url ? (

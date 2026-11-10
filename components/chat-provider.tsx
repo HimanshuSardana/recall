@@ -19,6 +19,7 @@ type ChatContextValue = {
   activeChat: Chat | null;
   dayStart: number;
   streaming: boolean;
+  enteringChatId: string | null;
   models: ModelOption[];
   model: string;
   setModel: (id: string) => void;
@@ -70,6 +71,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [streaming, setStreaming] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [models, setModels] = useState<ModelOption[]>([]);
+  const [enteringChatId, setEnteringChatId] = useState<string | null>(null);
   const [model, setModelState] = useState("");
 
   useEffect(() => {
@@ -184,6 +186,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       setChats(nextChats);
       setActiveId(chatId);
       setStreaming(true);
+
+      if (!existing) {
+        setEnteringChatId(chatId);
+        window.setTimeout(
+          () => setEnteringChatId((current) => (current === chatId ? null : current)),
+          400,
+        );
+      }
 
       if (!existing) {
         // Named from the first message while the reply streams; the provisional
@@ -305,6 +315,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       activeChat,
       dayStart,
       streaming,
+      enteringChatId,
       models,
       model,
       setModel: (id: string) => {
@@ -315,7 +326,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       openChat: (id: string) => setActiveId(id),
       send,
     };
-  }, [chats, activeId, dayStart, streaming, models, model]);
+  }, [chats, activeId, dayStart, streaming, enteringChatId, models, model]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }

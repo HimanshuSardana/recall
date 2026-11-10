@@ -46,9 +46,11 @@ function AssistantMark() {
 export function ChatThread({
   messages,
   streaming,
+  entering = false,
 }: {
   messages: Message[];
   streaming: boolean;
+  entering?: boolean;
 }) {
   const end = useRef<HTMLDivElement>(null);
   const last = messages.at(-1);
@@ -58,7 +60,7 @@ export function ChatThread({
   }, [messages.length, last?.content]);
 
   return (
-    <section className="min-h-0 flex-1 overflow-y-auto">
+    <section className={entering ? "enter-thread min-h-0 flex-1 overflow-y-auto" : "min-h-0 flex-1 overflow-y-auto"}>
       <div className="mx-auto w-full max-w-[720px] space-y-6 px-2 py-8">
         {messages.map((message) =>
           message.role === "user" ? (
@@ -74,7 +76,15 @@ export function ChatThread({
                   <UserAttachments attachments={message.attachments} />
                 ) : null}
                 {message.content && (
-                  <p className="px-2.5 pb-1 whitespace-pre-wrap">{message.content}</p>
+                  <p
+                    className={
+                      message.attachments?.length
+                        ? "px-2.5 pb-1 whitespace-pre-wrap"
+                        : "whitespace-pre-wrap"
+                    }
+                  >
+                    {message.content}
+                  </p>
                 )}
               </div>
             </div>
