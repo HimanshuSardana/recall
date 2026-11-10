@@ -24,7 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.theme==="dark")document.documentElement.classList.add("dark")}catch(e){}`,
+            __html: `try{document.documentElement.classList.add("js");if(localStorage.theme==="dark")document.documentElement.classList.add("dark");}catch(e){}`,
           }}
         />
       </head>

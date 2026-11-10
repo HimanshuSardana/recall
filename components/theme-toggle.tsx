@@ -2,14 +2,18 @@
 
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   return (
     <Button
       variant="ghost"
       size="icon-sm"
       aria-label="Toggle dark mode"
-      className="ml-auto text-muted-foreground hover:bg-accent group-data-[collapsible=icon]:hidden"
+      className={cn(
+        "text-muted-foreground hover:bg-accent group-data-[collapsible=icon]:hidden",
+        className,
+      )}
       onClick={() => {
         const dark = !document.documentElement.classList.contains("dark");
         document.documentElement.classList.toggle("dark", dark);

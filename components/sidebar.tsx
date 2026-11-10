@@ -71,8 +71,8 @@ export function Sidebar() {
 
   return (
     <SidebarShell variant="inset" collapsible="icon">
-      <SidebarHeader className="h-9 flex-row items-center gap-2 pr-1.5 pl-4 py-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-        <Link href="/" className="flex items-center gap-2">
+      <SidebarHeader className="h-9 flex-row items-center gap-2 pr-1.5 pl-4 py-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0">
+        <Link href="/" className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
           <Mark className="size-3.5 shrink-0 text-foreground group-data-[collapsible=icon]:hidden" />
         <span className="sidebar-fade sidebar-fade-inline text-[12.5px] leading-none font-semibold tracking-tight text-foreground">
             recall
@@ -96,7 +96,7 @@ export function Sidebar() {
             {nav.map(({ label, icon: Icon }) => (
               <SidebarMenuItem key={label}>
                 <SidebarMenuButton
-                  className="h-7 gap-2 px-2 text-[12px] font-normal text-foreground/80"
+                  className="h-7 gap-2 px-2 text-[12px] font-normal text-foreground/80 group-data-[collapsible=icon]:mx-auto"
                   tooltip={label}
                   onClick={label === "New chat" ? startNewChat : undefined}
                 >
@@ -199,7 +199,7 @@ export function Sidebar() {
             signedInLabel="Sign out"
           />
         </div>
-        <ThemeToggle />
+        <ThemeToggle className="ml-auto" />
       </SidebarFooter>
       <SidebarRail />
 

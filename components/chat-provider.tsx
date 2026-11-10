@@ -112,7 +112,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     } else {
       // localStorage is only readable on the client, so the first paint has no
       // history to show. Hydrating the store here is the point of the effect.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setChats(loadChats());
       setDayStart(startOfDay(new Date()));
       setLoaded(true);

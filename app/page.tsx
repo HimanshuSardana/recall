@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthButton } from "@/components/auth-button";
-import { LandingTheme } from "@/components/landing-theme";
+import { LandingMotion } from "@/components/landing-motion";
 import { Mark } from "@/components/mark";
-import "./landing.css";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { ChatLink } from "@/components/transition-link";
 
 const REPO = "https://github.com/HimanshuSardana/minimi-agent";
 
@@ -13,177 +14,198 @@ export const metadata: Metadata = {
     "A chat agent with a dated memory. Ask once, come back next week, and it starts from what you asked before — searching again when a fact could have moved.",
 };
 
+const features = [
+  {
+    title: "Dated log",
+    body: "Every question and answer is filed with its timestamp, so “what did I ask on 3 November” is a lookup, not a guess.",
+  },
+  {
+    title: "Recall tool",
+    body: "The model searches that log itself, by keywords and by date range, across every chat you have.",
+  },
+  {
+    title: "Last five asks",
+    body: "Today’s date and your recent questions ride in the prompt, so most recall happens before any tool call.",
+  },
+  {
+    title: "You can correct it",
+    body: "The Memories screen lists what was stored. Forget one entry, or clear all of it.",
+  },
+];
+
+const steps = [
+  ["The prompt", "carries today’s date and your last five questions; the current chat rides along as history."],
+  ["Two tools", "— recall reads the dated log, web_search asks Tavily and falls back to a self-hosted SearXNG."],
+  ["Sources", "— search results reach the model with their URLs, and the answer ends in the domains it read."],
+];
+
+const faq = [
+  [
+    "Does it remember across chats?",
+    "Yes. Turns are stored against your owner id with timestamps, and recall can read all of them — that is how “has anything changed since we spoke” works.",
+  ],
+  [
+    "Where does that live?",
+    "A SQLite file on the server: chats and messages for signed-in accounts, memories scoped to your user id or a guest cookie.",
+  ],
+  [
+    "Which model?",
+    "DeepSeek V4.1 Flash or Mimo V2.6 Flash over any OpenAI-compatible endpoint you point at with OPENAI_BASE_URL.",
+  ],
+  [
+    "What if search finds nothing?",
+    "It says so. Unrelated pages are filtered before they reach the model, and an answer that could not be verified is labelled as such.",
+  ],
+];
+
 export default function Landing() {
   return (
-    <div className="landing">
-      <header className="topbar">
-        <Link className="brand" href="/">
-          <Mark className="size-3.5 text-[var(--text)]" />
-          recall
+    <div className="min-h-svh bg-background font-sans text-foreground">
+      <LandingMotion />
+
+      <header className="mx-auto flex h-14 w-full max-w-[820px] items-center gap-5 px-6">
+        <Link href="/" className="flex items-center gap-2">
+          <Mark className="size-3.5 text-foreground" />
+          <span className="text-[12.5px] font-semibold tracking-tight">recall</span>
         </Link>
-        <a className="nl hide-m" href="#memory">
-          Memory
-        </a>
-        <a className="nl hide-m" href="#how">
-          How it works
-        </a>
-        <a className="nl hide-m" href="#faq">
-          FAQ
-        </a>
-        <a className="nl" href={REPO} target="_blank" rel="noreferrer">
-          GitHub
-        </a>
-        <div className="top-actions">
-          <AuthButton className="nl" signedOutLabel="Sign in" signedInLabel="Sign out" />
-          <Link className="btn btn-quiet btn-sm" href="/chat">
+
+        <nav className="ml-auto hidden items-center gap-4 md:flex">
+          {[
+            ["Memory", "#memory"],
+            ["How it works", "#how"],
+            ["FAQ", "#faq"],
+            ["GitHub", REPO],
+          ].map(([label, href]) => (
+            <a
+              key={label}
+              href={href}
+              target={href.startsWith("http") ? "_blank" : undefined}
+              rel={href.startsWith("http") ? "noreferrer" : undefined}
+              className="text-[12.5px] text-muted-foreground transition-colors duration-150 hover:text-foreground"
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-1">
+          <AuthButton
+            className="h-7 rounded-full px-2.5 text-[12px] text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
+            signedOutLabel="Sign in"
+            signedInLabel="Sign out"
+          />
+          <ThemeToggle className="ml-0" />
+          <ChatLink
+            className="ml-1 inline-flex h-8 items-center rounded-full bg-primary px-3.5 text-[12.5px] font-medium text-primary-foreground transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.97]"
+            href="/chat"
+          >
             Open chat
-          </Link>
-          <LandingTheme />
+          </ChatLink>
         </div>
       </header>
 
-      <main className="wrap">
-        <h1 className="tagline-title rise rise-1">Ask once. It remembers.</h1>
+      <main className="mx-auto w-full max-w-[820px] px-6 pb-24">
+        <section className="pt-14 pb-10 md:pt-20">
+          <h1 className="max-w-[620px] text-[32px] leading-[1.1] font-normal tracking-[-0.02em] md:text-[40px]">
+            Ask once. It remembers.
+          </h1>
+          <p className="mt-4 max-w-[540px] text-[14px] leading-relaxed text-muted-foreground">
+            recall is a chat agent with a dated memory. Ask something today, come back next week, and
+            it picks up where you left off — re-checking the web and showing the sources it used.
+          </p>
+          <div className="mt-7 flex flex-wrap items-center gap-2">
+            <ChatLink
+              className="inline-flex h-9 items-center rounded-full bg-primary px-4 text-[13px] font-medium text-primary-foreground transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.97]"
+              href="/chat"
+            >
+              Start chatting
+            </ChatLink>
+            <a
+              href="#how"
+              className="inline-flex h-9 items-center rounded-full border border-border bg-card px-4 text-[13px] font-medium text-foreground transition-[background-color,transform] duration-150 hover:bg-accent active:scale-[0.97]"
+            >
+              See how it works
+            </a>
+          </div>
+        </section>
 
-        <p className="lede rise rise-2">
-          recall is a chat agent with a dated memory. Ask something today, come back next week, and
-          it starts from what you asked before — searching the web again when a fact could have
-          moved, and showing the <a href="#memory">sources</a> behind every answer. No account: your
-          chats and memories live behind a cookie you can clear from the{" "}
-          <Link href="/chat">Memories screen</Link>.
-        </p>
+        <section id="memory" className="mt-12 scroll-mt-6 border-t border-border/70 pt-7">
+          <h2 className="text-[10.5px] font-semibold tracking-wide text-foreground uppercase">
+            Memory
+          </h2>
+          <div className="mt-3 divide-y divide-border/60">
+            {features.map((feature, index) => (
+              <div
+                key={feature.title}
+                className={`rv rv-${(index % 3) + 1} grid gap-1 py-3.5 sm:grid-cols-[170px_1fr] sm:gap-8`}
+              >
+                <h3 className="text-[13px] font-medium text-foreground">{feature.title}</h3>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">{feature.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
-        <div className="btn-row rise rise-3">
-          <Link className="btn btn-solid" href="/chat">
-            Start chatting
-          </Link>
-          <a className="btn btn-ghost" href="#how">
+        <section id="how" className="mt-12 scroll-mt-6 border-t border-border/70 pt-7">
+          <h2 className="text-[10.5px] font-semibold tracking-wide text-foreground uppercase">
             How it works
+          </h2>
+          <ol className="mt-3 divide-y divide-border/60">
+            {steps.map(([lead, body], index) => (
+              <li key={lead} className="rv grid gap-1 py-3.5 sm:grid-cols-[170px_1fr] sm:gap-8">
+                <p className="flex items-baseline gap-2 text-[13px] font-medium text-foreground">
+                  <span className="font-mono text-[11px] text-muted-foreground">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  {lead}
+                </p>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">{body}</p>
+              </li>
+            ))}
+          </ol>
+
+          <pre className="rv mt-5 overflow-x-auto rounded-xl bg-foreground/[0.04] p-3.5 font-mono text-[12px] leading-relaxed text-muted-foreground dark:bg-foreground/[0.07]">
+            <code>{`# run it
+npm install
+npm run dev            → http://localhost:3000
+
+# keys (see .env.example)
+OPENAI_API_KEY=…       # any OpenAI-compatible endpoint
+TAVILY_API_KEY=…       # web search; SEARXNG_* is the fallback`}</code>
+          </pre>
+        </section>
+
+        <section id="faq" className="mt-12 scroll-mt-6 border-t border-border/70 pt-7">
+          <h2 className="text-[10.5px] font-semibold tracking-wide text-foreground uppercase">FAQ</h2>
+          <div className="mt-3 divide-y divide-border/60">
+            {faq.map(([question, answer]) => (
+              <div key={question} className="rv py-3.5">
+                <p className="text-[13px] font-medium text-foreground">{question}</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{answer}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <footer className="mt-12 flex flex-wrap items-center gap-3 border-t border-border/70 pt-6 text-[11.5px] text-muted-foreground">
+          <Mark className="size-3 text-muted-foreground" />
+          <span>recall — built for the minimi intern challenge</span>
+          <a
+            href={REPO}
+            target="_blank"
+            rel="noreferrer"
+            className="ml-auto transition-colors duration-150 hover:text-foreground"
+          >
+            GitHub
           </a>
-        </div>
-
-        <p className="sec-label" id="memory">
-          Memory
-        </p>
-        <ul className="feat-list">
-          <li>
-            <b>Dated log</b> — every question and answer is filed with its timestamp, so “what did I
-            ask on 3 November” is a lookup, not a guess
-          </li>
-          <li>
-            <b>Recall tool</b> — the model searches that log itself, by keywords and by date range,
-            across every chat you have
-          </li>
-          <li>
-            <b>Last five asks</b> — today’s date and your recent questions ride in the system prompt,
-            so most recall happens before any tool call
-          </li>
-          <li>
-            <b>You can correct it</b> — the Memories screen lists what was stored, forget one entry
-            or delete all of it
-          </li>
-        </ul>
-
-        <p className="sec-label" id="how">
-          How it works
-        </p>
-        <ol className="steps">
-          <li>
-            <b>The prompt</b> carries today’s date and your last five questions; the current chat
-            rides along as normal history.
-          </li>
-          <li>
-            <b>Two tools.</b> <code>recall</code> queries the dated log — dates are ranges, not
-            similarity. <code>web_search</code> asks Tavily, falling back to a self-hosted SearXNG
-            when Tavily is missing or empty.
-          </li>
-          <li>
-            <b>Sources, then prose.</b> Search results reach the model with their URLs; the answer
-            streams back and ends in the domains it actually read.
-          </li>
-        </ol>
-        <div className="cmd-box">
-          <span className="c"># run it</span>
-          {"\n$ npm install\n$ npm run dev            "}
-          <span className="c">→ http://localhost:3000</span>
-          {"\n\n"}
-          <span className="c"># keys (see .env.example)</span>
-          {"\nOPENAI_API_KEY=…         "}
-          <span className="c"># any OpenAI-compatible endpoint</span>
-          {"\nTAVILY_API_KEY=…         "}
-          <span className="c"># web search; SEARXNG_* is the fallback</span>
-        </div>
-
-        <p className="sec-label" id="faq">
-          FAQ
-        </p>
-        <div className="qa">
-          <p className="q">Does it remember across chats?</p>
-          <p>
-            Yes. Turns are stored against your owner id with timestamps, and the recall tool is
-            allowed to read all of them — that is how “has anything changed since we spoke” works.
-          </p>
-        </div>
-        <div className="qa">
-          <p className="q">Where does that live?</p>
-          <p>
-            A SQLite file on the server, scoped to a year-long httpOnly cookie. No account, no
-            email. Deleting memories removes the rows; signing in later would reassign them.
-          </p>
-        </div>
-        <div className="qa">
-          <p className="q">Which model?</p>
-          <p>
-            DeepSeek V4.1 Flash or Mimo V2.6 Flash, both over an OpenAI-compatible endpoint that you
-            point at with <code>OPENAI_BASE_URL</code>.
-          </p>
-        </div>
-        <div className="qa">
-          <p className="q">What if search finds nothing?</p>
-          <p>
-            It says so. Unrelated pages are filtered before they reach the model, and an answer that
-            could not be verified is labelled as such rather than filled in.
-          </p>
-        </div>
-
-        <footer className="site">
-          <div className="foot-cols">
-            <div>
-              <h5>Product</h5>
-              <Link href="/chat">Chat</Link>
-              <a href="#memory">Memory</a>
-              <a href="#how">How it works</a>
-              <a href="#faq">FAQ</a>
-            </div>
-            <div>
-              <h5>Tools</h5>
-              <a href="#how">recall</a>
-              <a href="#how">web_search</a>
-              <a href="#how">Sources</a>
-            </div>
-            <div>
-              <h5>Project</h5>
-              <a href={REPO} target="_blank" rel="noreferrer">
-                GitHub
-              </a>
-              <a href={`${REPO}/issues`} target="_blank" rel="noreferrer">
-                Issues
-              </a>
-            </div>
-            <div>
-              <h5>Author</h5>
-              <a href="https://github.com/HimanshuSardana" target="_blank" rel="noreferrer">
-                Himanshu
-              </a>
-              <a href="https://himanshu.co" target="_blank" rel="noreferrer">
-                Portfolio
-              </a>
-            </div>
-          </div>
-          <div className="foot-base">
-            <span>© 2026 Himanshu Sardana</span>
-            <span>recall — built for the minimi intern challenge</span>
-          </div>
+          <a
+            href="https://himanshu.co"
+            target="_blank"
+            rel="noreferrer"
+            className="transition-colors duration-150 hover:text-foreground"
+          >
+            Himanshu
+          </a>
         </footer>
       </main>
     </div>

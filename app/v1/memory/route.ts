@@ -1,9 +1,8 @@
-import { mintOwner, ownerCookie, ownerFrom } from "@/lib/identity";
+import { memoryOwner } from "@/lib/auth";
 import { clearChat, clearTurns, forgetTurns, listTurns } from "@/lib/memory";
 
 export async function DELETE(request: Request) {
-  const owner = ownerFrom(request);
-  if (!owner) return Response.json({ cleared: 0 });
+  const { owner } = await memoryOwner(request);
 
   const params = new URL(request.url).searchParams;
   const chat = params.get("chat");
@@ -17,9 +16,8 @@ export async function DELETE(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const existing = ownerFrom(request);
-  const owner = existing ?? mintOwner();
-  const turns = existing ? listTurns(owner) : [];
+  const { owner, cookie } = await memoryOwner(request);
+  const turns = listTurns(owner);
 
   const response = Response.json({
     turns: turns.map((turn) => ({
@@ -31,6 +29,6 @@ export async function GET(request: Request) {
     })),
   });
 
-  if (!existing) response.headers.append("set-cookie", ownerCookie(owner));
+  if (cookie) response.headers.append("set-cookie", cookie);
   return response;
 }

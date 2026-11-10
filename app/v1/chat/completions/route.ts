@@ -1,4 +1,4 @@
-import { mintOwner, ownerCookie, ownerFrom } from "@/lib/identity";
+import { memoryOwner } from "@/lib/auth";
 import { recallTurns, recentAsks, rememberTurn } from "@/lib/memory";
 import { resolveModel } from "@/lib/models";
 import { webSearch } from "@/lib/search";
@@ -221,9 +221,7 @@ export async function POST(request: Request) {
   const model = resolveModel(body.model);
   const history: ChatMessage[] = body.messages;
 
-  const cookieOwner = ownerFrom(request);
-  const owner = cookieOwner ?? mintOwner();
-  const setCookie = cookieOwner ? null : ownerCookie(owner);
+  const { owner, cookie: setCookie } = await memoryOwner(request);
   const chat = body.chat_id || "default";
 
   const lastTurn = history.at(-1);
