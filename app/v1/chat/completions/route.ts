@@ -69,7 +69,7 @@ const day = (at: number) => new Date(at).toISOString().slice(0, 10);
 function promptFor(owner: string) {
   const asks = recentAsks(owner, 5);
   const lines = [
-    "You are Kraken, a chat agent with one tool: web search. You can also recall this user's earlier conversations.",
+    "You are recall, a chat agent with one tool: web search. You can also recall this user's earlier conversations.",
     `Today is ${day(Date.now())} (UTC).`,
   ];
 

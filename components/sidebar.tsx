@@ -16,6 +16,7 @@ import {
   SidebarTrigger,
   Sidebar as SidebarShell,
 } from "@/components/ui/sidebar";
+import { Mark } from "@/components/mark";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -59,14 +60,9 @@ export function Sidebar() {
   return (
     <SidebarShell variant="inset" collapsible="icon">
       <SidebarHeader className="h-9 flex-row items-center gap-2 pr-1.5 pl-4 py-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-        <svg
-          viewBox="0 0 12 14"
-          className="h-3.5 w-3 shrink-0 fill-foreground group-data-[collapsible=icon]:hidden"
-        >
-          <path d="M1 1h10L6.8 7 11 13H1l4.2-6z" />
-        </svg>
+        <Mark className="size-3.5 shrink-0 text-foreground group-data-[collapsible=icon]:hidden" />
         <span className="sidebar-fade sidebar-fade-inline text-[12.5px] leading-none font-semibold tracking-tight text-foreground">
-          Kraken
+          recall
         </span>
         <Button
           variant="ghost"

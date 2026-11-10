@@ -5,6 +5,7 @@
 import { ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { Mark } from "@/components/mark";
 import { Markdown } from "@/components/markdown";
 import type { Message, MessageAttachment, ToolCall } from "@/lib/chat";
 
@@ -194,9 +195,7 @@ function Reasoning({ text, live, ms }: { text: string; live: boolean; ms?: numbe
 function AssistantMark() {
   return (
     <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
-      <svg viewBox="0 0 12 14" className="h-3 w-2.5 fill-current">
-        <path d="M1 1h10L6.8 7 11 13H1l4.2-6z" />
-      </svg>
+      <Mark className="size-3" />
     </span>
   );
 }

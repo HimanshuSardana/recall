@@ -7,7 +7,7 @@ export async function GET() {
       id,
       object: "model",
       created: 0,
-      owned_by: "kraken",
+      owned_by: "recall",
       name,
     })),
   });

@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Kraken",
-  description: "Support assistant",
+  title: "recall",
+  description: "A chat agent that remembers",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
