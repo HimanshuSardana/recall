@@ -3,12 +3,13 @@
 import { useLayoutEffect, useRef } from "react";
 import { useChat } from "@/components/chat-provider";
 import { ChatThread } from "@/components/chat-thread";
+import { Memories } from "@/components/memories";
 import { Composer } from "@/components/composer";
 
 const CURVE = "cubic-bezier(0.65, 0, 0.35, 1)";
 
 export function ChatSurface() {
-  const { activeChat, streaming, enteringChatId } = useChat();
+  const { activeChat, streaming, enteringChatId, memoriesOpen } = useChat();
   const messages = activeChat?.messages ?? [];
   const hero = messages.length === 0;
 
@@ -45,6 +46,10 @@ export function ChatSurface() {
     lastTop.current = top;
     lastHero.current = hero;
   }, [hero]);
+
+  if (memoriesOpen) {
+    return <Memories />;
+  }
 
   return (
     <div

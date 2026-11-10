@@ -74,6 +74,49 @@ export function rememberTurn(turn: {
     .run(turn.owner, turn.owner);
 }
 
+export type ListedTurn = StoredTurn & { id: string; chat: string };
+
+export function listTurns(owner: string, limit = 200): ListedTurn[] {
+  const rows = db()
+    .prepare(
+      "SELECT id, chat, at, role, text FROM turns WHERE owner = ? ORDER BY at DESC LIMIT ?",
+    )
+    .all(owner, limit) as { id: string; chat: string; at: number; role: Role; text: string }[];
+
+  return rows.reverse().map((row) => ({
+    id: row.id,
+    chat: row.chat,
+    at: row.at,
+    role: row.role,
+    text: row.text.slice(0, 600),
+  }));
+}
+
+function forget(owner: string, where: string, params: (string | number)[]) {
+  const handle = db();
+  handle
+    .prepare(
+      `DELETE FROM turns_fts WHERE turn_id IN (SELECT id FROM turns WHERE ${where})`,
+    )
+    .run(...params);
+  const result = handle.prepare(`DELETE FROM turns WHERE ${where}`).run(...params);
+  return Number(result.changes ?? 0);
+}
+
+export function forgetTurns(owner: string, ids: string[]) {
+  if (ids.length === 0) return 0;
+  const placeholders = ids.map(() => "?").join(", ");
+  return forget(owner, `owner = ? AND id IN (${placeholders})`, [owner, ...ids]);
+}
+
+export function clearTurns(owner: string) {
+  return forget(owner, "owner = ?", [owner]);
+}
+
+export function clearChat(owner: string, chat: string) {
+  return forget(owner, "owner = ? AND chat = ?", [owner, chat]);
+}
+
 export function recentAsks(owner: string, limit = 5): StoredTurn[] {
   const rows = db()
     .prepare(

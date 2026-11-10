@@ -23,6 +23,10 @@ type ChatContextValue = {
   enteringChatId: string | null;
   loaded: boolean;
   stop: () => void;
+  memoriesOpen: boolean;
+  openMemories: () => void;
+  togglePin: (id: string) => void;
+  deleteChat: (id: string) => void;
   models: ModelOption[];
   model: string;
   setModel: (id: string) => void;
@@ -75,6 +79,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const [models, setModels] = useState<ModelOption[]>([]);
   const [enteringChatId, setEnteringChatId] = useState<string | null>(null);
+  const [memoriesOpen, setMemoriesOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const [model, setModelState] = useState("");
 
@@ -360,6 +365,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       streaming,
       enteringChatId,
       loaded,
+      memoriesOpen,
+      openMemories: () => setMemoriesOpen(true),
+      togglePin: (id: string) =>
+        setChats((previous) =>
+          previous.map((chat) => (chat.id === id ? { ...chat, pinned: !chat.pinned } : chat)),
+        ),
+      deleteChat: (id: string) => {
+        setChats((previous) => previous.filter((chat) => chat.id !== id));
+        setActiveId((current) => (current === id ? null : current));
+        // The transcript goes with it; the server drops that chat's turns so
+        // recall cannot quote a conversation the user has thrown away.
+        fetch(`/v1/memory?chat=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
+      },
       stop: () => abortRef.current?.abort(),
       models,
       model,
@@ -367,11 +385,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         setModelState(id);
         localStorage.setItem("kraken.model", id);
       },
-      startNewChat: () => setActiveId(null),
-      openChat: (id: string) => setActiveId(id),
+      startNewChat: () => {
+        setMemoriesOpen(false);
+        setActiveId(null);
+      },
+      openChat: (id: string) => {
+        setMemoriesOpen(false);
+        setActiveId(id);
+      },
       send,
     };
-  }, [chats, activeId, dayStart, streaming, enteringChatId, loaded, models, model]);
+  }, [chats, activeId, dayStart, streaming, enteringChatId, loaded, memoriesOpen, models, model]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }
