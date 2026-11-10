@@ -25,6 +25,8 @@ type ChatContextValue = {
   stop: () => void;
   memoriesOpen: boolean;
   openMemories: () => void;
+  searchOpen: boolean;
+  setSearchOpen: (open: boolean) => void;
   togglePin: (id: string) => void;
   deleteChat: (id: string) => void;
   models: ModelOption[];
@@ -80,6 +82,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [enteringChatId, setEnteringChatId] = useState<string | null>(null);
   const [memoriesOpen, setMemoriesOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const [model, setModelState] = useState("");
 
@@ -367,6 +370,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       loaded,
       memoriesOpen,
       openMemories: () => setMemoriesOpen(true),
+      searchOpen,
+      setSearchOpen,
       togglePin: (id: string) =>
         setChats((previous) =>
           previous.map((chat) => (chat.id === id ? { ...chat, pinned: !chat.pinned } : chat)),
@@ -387,15 +392,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       },
       startNewChat: () => {
         setMemoriesOpen(false);
+        setSearchOpen(false);
         setActiveId(null);
       },
       openChat: (id: string) => {
         setMemoriesOpen(false);
+        setSearchOpen(false);
         setActiveId(id);
       },
       send,
     };
-  }, [chats, activeId, dayStart, streaming, enteringChatId, loaded, memoriesOpen, models, model]);
+  }, [chats, activeId, dayStart, streaming, enteringChatId, loaded, memoriesOpen, searchOpen, models, model]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }

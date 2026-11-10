@@ -194,9 +194,7 @@ function Reasoning({ text, live, ms }: { text: string; live: boolean; ms?: numbe
 
 function AssistantMark() {
   return (
-    <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
-      <Mark className="size-3" />
-    </span>
+    <Mark className="mt-1 size-4 shrink-0 text-foreground" />
   );
 }
 

@@ -54,6 +54,7 @@ export function Sidebar() {
     startNewChat,
     togglePin,
     deleteChat,
+    setSearchOpen,
   } = useChat();
   const groups = groupChats(chats, dayStart);
 
@@ -67,7 +68,8 @@ export function Sidebar() {
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label="Search"
+          aria-label="Search messages"
+          onClick={() => setSearchOpen(true)}
           className="sidebar-fade sidebar-fade-inline ml-auto size-7 text-muted-foreground hover:bg-accent"
         >
           <Search strokeWidth={1.7} />

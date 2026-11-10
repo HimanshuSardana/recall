@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { ChatProvider } from "@/components/chat-provider";
+import { CommandPalette } from "@/components/command-palette";
 import { ChatSurface } from "@/components/chat-surface";
 import { Sidebar } from "@/components/sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -22,6 +23,7 @@ export default function Home() {
           <ChatSurface />
         </SidebarInset>
       </SidebarProvider>
+      <CommandPalette />
     </ChatProvider>
   );
 }
