@@ -1,8 +1,8 @@
 import { titleFrom } from "@/lib/chat";
+import { resolveModel } from "@/lib/models";
 
 const BASE_URL = process.env.OPENAI_BASE_URL?.replace(/\/+$/, "");
 const API_KEY = process.env.OPENAI_API_KEY;
-const DEFAULT_MODEL = process.env.OPENAI_MODEL || "astra-max";
 
 const INSTRUCTIONS = [
   "You name chat threads.",
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         "x-opencode-session": crypto.randomUUID(),
       },
       body: JSON.stringify({
-        model: DEFAULT_MODEL,
+        model: resolveModel(),
         stream: false,
         messages: [
           { role: "system", content: INSTRUCTIONS },

@@ -1,3 +1,5 @@
+import { resolveModel } from "@/lib/models";
+
 type ChatMessage = { role: string; content: unknown };
 
 type ChatRequest = {
@@ -9,7 +11,6 @@ type ChatRequest = {
 
 const BASE_URL = process.env.OPENAI_BASE_URL?.replace(/\/+$/, "");
 const API_KEY = process.env.OPENAI_API_KEY;
-const DEFAULT_MODEL = process.env.OPENAI_MODEL || "astra-max";
 
 function invalid(message: string) {
   return Response.json(
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
     return invalid("`messages` must be a non-empty array.");
   }
 
-  const model = body.model || DEFAULT_MODEL;
+  const model = resolveModel(body.model);
 
   if (BASE_URL && API_KEY) {
     // A provider is configured, so this is a thin proxy: the upstream response
