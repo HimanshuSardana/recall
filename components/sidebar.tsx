@@ -39,11 +39,7 @@ export function Sidebar() {
   const groups = groupChats(chats, dayStart);
 
   return (
-    <SidebarShell
-      variant="inset"
-      collapsible="icon"
-      className="transition-colors duration-150"
-    >
+    <SidebarShell variant="inset" collapsible="icon">
       <SidebarHeader className="h-9 flex-row items-center gap-2 pr-1.5 pl-4 py-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
         <svg
           viewBox="0 0 12 14"

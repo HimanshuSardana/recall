@@ -129,6 +129,12 @@
   }
 }
 
+/* A transition-* class on the sidebar wrapper would override the width and
+   position transitions it ships with, so the panel's colour fade lives here. */
+[data-slot="sidebar-inner"] {
+  transition: background-color 150ms ease;
+}
+
 /* The keyboard toggle sets this so a repeated action collapses instantly. */
 [data-instant] [data-slot="sidebar-gap"],
 [data-instant] [data-slot="sidebar-container"],
