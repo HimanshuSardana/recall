@@ -1,3 +1,5 @@
+import { mintOwner, ownerCookie, ownerFrom } from "@/lib/identity";
+import { recallTurns, recentAsks, rememberTurn } from "@/lib/memory";
 import { resolveModel } from "@/lib/models";
 import { webSearch } from "@/lib/search";
 
@@ -8,6 +10,7 @@ type ChatRequest = {
   messages?: ChatMessage[];
   stream?: unknown;
   session_id?: string;
+  chat_id?: string;
   tools?: unknown;
 };
 
@@ -42,6 +45,66 @@ const WEB_SEARCH = {
     },
   },
 };
+
+const RECALL = {
+  type: "function",
+  function: {
+    name: "recall",
+    description:
+      "Search this user's earlier conversations, including other chats. Use it whenever they refer to something from before — “last Tuesday”, “on 3 November”, “what did I ask”, “the CRM shortlist” — and never invent what they asked.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Keywords to look for in earlier turns." },
+        from: { type: "string", description: "Inclusive start date, YYYY-MM-DD." },
+        to: { type: "string", description: "Inclusive end date, YYYY-MM-DD." },
+      },
+      additionalProperties: false,
+    },
+  },
+};
+
+const day = (at: number) => new Date(at).toISOString().slice(0, 10);
+
+function promptFor(owner: string) {
+  const asks = recentAsks(owner, 5);
+  const lines = [
+    "You are Kraken, a chat agent with one tool: web search. You can also recall this user's earlier conversations.",
+    `Today is ${day(Date.now())} (UTC).`,
+  ];
+
+  if (asks.length) {
+    lines.push(
+      `Recent questions from this user, oldest first:\n${asks
+        .map((ask) => `- ${day(ask.at)} — ${ask.text.slice(0, 140)}`)
+        .join("\n")}`,
+    );
+  }
+
+  lines.push(
+    "Resolve relative dates against today. Use recall for anything that happened before this chat; use web search for anything that may have changed. Do not state what the user asked without checking recall first.",
+  );
+
+  return lines.join("\n\n");
+}
+
+function messageText(content: unknown) {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => (part && typeof part === "object" && "text" in part ? String(part.text) : ""))
+      .join(" ")
+      .trim();
+  }
+  return "";
+}
+
+function withOwner(response: Response, cookie: string | null) {
+  if (!cookie) return response;
+  const headers = new Headers(response.headers);
+  headers.append("set-cookie", cookie);
+  return new Response(response.body, { status: response.status, headers });
+}
 
 function invalid(message: string) {
   return Response.json(
@@ -158,13 +221,22 @@ export async function POST(request: Request) {
   const model = resolveModel(body.model);
   const history: ChatMessage[] = body.messages;
 
+  const cookieOwner = ownerFrom(request);
+  const owner = cookieOwner ?? mintOwner();
+  const setCookie = cookieOwner ? null : ownerCookie(owner);
+  const chat = body.chat_id || "default";
+
+  const lastTurn = history.at(-1);
+  const asked = lastTurn?.role === "user" ? messageText(lastTurn.content) : "";
+  if (asked) rememberTurn({ owner, chat, role: "user", text: asked });
+
   if (!BASE_URL || !API_KEY) {
     const id = `chatcmpl-${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`;
     const created = Math.floor(Date.now() / 1000);
     const reply = mockReply(body.messages);
 
     if (body.stream === false) {
-      return Response.json({
+      return withOwner(Response.json({
         id,
         object: "chat.completion",
         created,
@@ -173,7 +245,7 @@ export async function POST(request: Request) {
           { index: 0, message: { role: "assistant", content: reply }, finish_reason: "stop" },
         ],
         usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-      });
+      }), setCookie);
     }
 
     const encoder = new TextEncoder();
@@ -200,7 +272,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return new Response(stream, { headers: sseHeaders() });
+    return withOwner(new Response(stream, { headers: sseHeaders() }), setCookie);
   }
 
   const upstreamHeaders = {
@@ -208,6 +280,8 @@ export async function POST(request: Request) {
     Authorization: `Bearer ${API_KEY}`,
     "x-opencode-session": body.session_id || crypto.randomUUID(),
   };
+
+  const guided = [{ role: "system", content: promptFor(owner) }, ...history];
 
   // A client that brings its own tools is proxied untouched; we only drive the
   // loop for the tool we advertise.
@@ -231,7 +305,7 @@ export async function POST(request: Request) {
 
   if (body.stream === false) {
     // Non-streaming callers get the loop run to completion, then one JSON reply.
-    const messages: unknown[] = [...history];
+    const messages: unknown[] = [...guided];
     let answer = "";
 
     for (let round = 0; round < 3; round += 1) {
@@ -272,7 +346,7 @@ export async function POST(request: Request) {
       }
 
       messages.push({ role: "assistant", content: message?.content ?? null, tool_calls: message?.tool_calls });
-      const { messages: toolMessages } = await runToolCalls(calls);
+      const { messages: toolMessages } = await runToolCalls(calls, owner);
       messages.push(...toolMessages);
     }
 
@@ -291,7 +365,7 @@ export async function POST(request: Request) {
           model,
           stream: false,
           messages,
-          tools: [WEB_SEARCH],
+          tools: [WEB_SEARCH, RECALL],
           tool_choice: "auto",
         }),
       });
@@ -304,14 +378,16 @@ export async function POST(request: Request) {
       }
     }
 
-    return Response.json({
+    if (answer) rememberTurn({ owner, chat, role: "assistant", text: answer });
+
+    return withOwner(Response.json({
       id: `chatcmpl-${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`,
       object: "chat.completion",
       created: Math.floor(Date.now() / 1000),
       model,
       choices: [{ index: 0, message: { role: "assistant", content: answer }, finish_reason: "stop" }],
       usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-    });
+    }), setCookie);
   }
 
   const encoder = new TextEncoder();
@@ -330,9 +406,10 @@ export async function POST(request: Request) {
         choices: [{ index: 0, delta, finish_reason: finishReason }],
       });
 
-      const messages: unknown[] = [...history];
+      const messages: unknown[] = [...guided];
       let started = false;
       let answered = false;
+      let answer = "";
 
       for (let round = 0; round < 3; round += 1) {
         const upstream = await fetch(`${BASE_URL}/chat/completions`, {
@@ -344,7 +421,7 @@ export async function POST(request: Request) {
             model,
             messages,
             stream: true,
-            tools: [WEB_SEARCH],
+            tools: [WEB_SEARCH, RECALL],
             tool_choice: "auto",
           }),
         });
@@ -363,7 +440,12 @@ export async function POST(request: Request) {
           started = true;
         }
 
-        const { content, calls } = await relay(upstream.body, (delta) => send(chunk(delta)));
+        const { content, calls } = await relay(upstream.body, (delta) => {
+          if (typeof (delta as { content?: string }).content === "string") {
+            answer += (delta as { content: string }).content;
+          }
+          send(chunk(delta));
+        });
 
         if (calls.length === 0) {
           answered = true;
@@ -384,7 +466,7 @@ export async function POST(request: Request) {
           })),
         });
 
-        const { messages: toolMessages, events } = await runToolCalls(calls);
+        const { messages: toolMessages, events } = await runToolCalls(calls, owner);
         messages.push(...toolMessages);
 
         for (const event of events) {
@@ -413,7 +495,7 @@ export async function POST(request: Request) {
             model,
             messages,
             stream: true,
-            tools: [WEB_SEARCH],
+            tools: [WEB_SEARCH, RECALL],
             tool_choice: "auto",
           }),
         });
@@ -426,13 +508,15 @@ export async function POST(request: Request) {
       send(chunk({}, "stop"));
       controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       controller.close();
+
+      if (answer.trim()) rememberTurn({ owner, chat, role: "assistant", text: answer });
     },
   });
 
-  return new Response(relayStream, { headers: sseHeaders() });
+  return withOwner(new Response(relayStream, { headers: sseHeaders() }), setCookie);
 }
 
-async function runToolCalls(calls: ToolCall[]) {
+async function runToolCalls(calls: ToolCall[], owner: string) {
   const messages: { role: "tool"; tool_call_id: string; content: string }[] = [];
   const events: ToolEvent[] = [];
 
@@ -441,19 +525,38 @@ async function runToolCalls(calls: ToolCall[]) {
     let query = "";
 
     try {
-      const args = JSON.parse(call.arguments) as { query?: unknown };
+      const args = JSON.parse(call.arguments) as { query?: unknown; from?: unknown; to?: unknown };
       query = typeof args.query === "string" ? args.query : "";
-      payload = { results: await webSearch(query) };
+
+      if (call.name === "recall") {
+        const turns = recallTurns({
+          owner,
+          query: query || undefined,
+          from: typeof args.from === "string" ? args.from : undefined,
+          to: typeof args.to === "string" ? args.to : undefined,
+        });
+
+        payload = {
+          turns: turns.map((turn) => ({
+            at: day(turn.at),
+            role: turn.role,
+            text: turn.text,
+          })),
+        };
+      } else {
+        payload = { results: await webSearch(query) };
+      }
     } catch (error) {
-      payload = { error: error instanceof Error ? error.message : "Search failed." };
+      payload = { error: error instanceof Error ? error.message : "Tool failed." };
     }
 
     const found = (payload as { results?: { title?: string; url?: string }[] }).results ?? [];
+    const recalled = (payload as { turns?: unknown[] }).turns ?? [];
 
     events.push({
       name: call.name,
       query,
-      results: found.length,
+      results: call.name === "recall" ? recalled.length : found.length,
       sources: found.slice(0, 4).map((source) => ({
         title: source.title ?? "",
         url: source.url ?? "",

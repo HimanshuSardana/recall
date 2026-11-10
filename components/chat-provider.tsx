@@ -266,6 +266,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({
             model: model || undefined,
             session_id: sessionId(),
+            chat_id: chatId,
             stream: true,
             messages: [
               ...history,

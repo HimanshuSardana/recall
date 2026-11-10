@@ -59,7 +59,12 @@ const domainOf = (url: string) => {
 function ToolSources({ calls }: { calls: ToolCall[] }) {
   const [open, setOpen] = useState(false);
 
-  const sources = calls
+  const searches = calls.filter((call) => call.name === "web_search");
+  const recalled = calls
+    .filter((call) => call.name === "recall")
+    .reduce((total, call) => total + call.results, 0);
+
+  const sources = searches
     .flatMap((call) =>
       (call.sources ?? []).map((source) => ({ ...source, query: call.query })),
     )
@@ -67,15 +72,22 @@ function ToolSources({ calls }: { calls: ToolCall[] }) {
       (source, index, all) => all.findIndex((other) => other.url === source.url) === index,
     );
 
-  const searched = calls.length;
-  const empty = calls.filter((call) => call.results === 0).length;
+  const searched = searches.length;
+  const empty = searches.filter((call) => call.results === 0).length;
+  const recalledLine =
+    recalled > 0 ? `Recalled ${recalled} earlier ${recalled === 1 ? "turn" : "turns"}` : null;
 
-  if (searched === 0) return null;
+  if (searched === 0) {
+    return recalledLine ? (
+      <p className="mt-2 text-[11.5px] text-muted-foreground/80">{recalledLine}</p>
+    ) : null;
+  }
 
   if (sources.length === 0) {
     return (
       <p className="mt-2 text-[11.5px] text-muted-foreground/80">
-        Searched the web {searched === 1 ? "once" : `${searched} times`} · no usable results
+        {recalledLine ? `${recalledLine} · ` : ""}
+        searched the web {searched === 1 ? "once" : `${searched} times`} · no usable results
       </p>
     );
   }
@@ -83,6 +95,9 @@ function ToolSources({ calls }: { calls: ToolCall[] }) {
   return (
     <div className="mt-3">
       <div className="flex flex-wrap items-center gap-2">
+        {recalledLine ? (
+          <span className="text-[11.5px] text-muted-foreground/80">{recalledLine}</span>
+        ) : null}
         <div className="flex -space-x-1.5">
           {sources.slice(0, 5).map((source) => (
             <span
