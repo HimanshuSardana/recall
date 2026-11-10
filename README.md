@@ -4,6 +4,8 @@
 
 **A chat agent with a dated memory.** Ask once, come back next week, and it starts from what you asked before — searching the web again when a fact could have moved, and showing the sources behind every answer.
 
+**Live at [recall.himanshu.co](https://recall.himanshu.co)** — the agent is at [/chat](https://recall.himanshu.co/chat), and no account is needed to use it.
+
 <br clear="left" />
 
 ---
@@ -29,7 +31,7 @@ A turn may call a tool more than once. When the loop is done the assistant's ans
 
 ## Getting started
 
-Requires **Node 22+** (better-sqlite3 is native).
+Use the hosted instance at **[recall.himanshu.co](https://recall.himanshu.co)**, or run it locally — requires **Node 22+** (better-sqlite3 is native).
 
 ```bash
 npm install
