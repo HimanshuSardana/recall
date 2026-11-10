@@ -93,9 +93,9 @@ function SidebarProvider({
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
   }, [isMobile, setOpen, setOpenMobile])
 
-  // Adds a keyboard shortcut to toggle the sidebar.
   const wrapperRef = React.useRef<HTMLDivElement>(null)
 
+  // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
@@ -103,12 +103,11 @@ function SidebarProvider({
         (event.metaKey || event.ctrlKey)
       ) {
         event.preventDefault()
-        // A keyboard toggle repeats all day, so skip the slide and let CSS
-        // drop the transition while the attribute is present.
-        wrapperRef.current?.setAttribute("data-instant", "")
+        // A shortcut gets hit all day: same motion, half the length.
+        wrapperRef.current?.setAttribute("data-fast", "")
         window.setTimeout(
-          () => wrapperRef.current?.removeAttribute("data-instant"),
-          60
+          () => wrapperRef.current?.removeAttribute("data-fast"),
+          240
         )
         toggleSidebar()
       }
