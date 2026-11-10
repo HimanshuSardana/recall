@@ -24,10 +24,18 @@ type ChatContextValue = {
   setModel: (id: string) => void;
   startNewChat: () => void;
   openChat: (id: string) => void;
-  send: (text: string) => Promise<void>;
+  send: (text: string, files?: File[]) => Promise<void>;
 };
 
 const ChatContext = createContext<ChatContextValue | null>(null);
+
+const readAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 
 export function useChat() {
   const context = useContext(ChatContext);
@@ -103,9 +111,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         ),
       );
 
-    const send = async (text: string) => {
-      const content = text.trim();
-      if (!content || streaming) return;
+    const send = async (text: string, files: File[] = []) => {
+      const prompt = text.trim();
+      if ((!prompt && files.length === 0) || streaming) return;
+
+      const names = files.map((file) => file.name);
+      const content = names.length
+        ? [prompt, `Attached: ${names.join(", ")}`].filter(Boolean).join("\n\n")
+        : prompt;
 
       const now = Date.now();
       const userMessage: Message = { id: newId(), role: "user", content };
@@ -136,7 +149,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
       const history = (existing?.messages ?? [])
         .filter((message) => message.content)
-        .map(({ role, content: text }) => ({ role, content: text }));
+        .map(({ role, content: previous }) => ({ role, content: previous }));
 
       setChats(nextChats);
       setActiveId(chatId);
@@ -148,7 +161,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         void fetch("/v1/chat/title", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: content }),
+          body: JSON.stringify({ message: prompt || `Files: ${names.join(", ")}` }),
         })
           .then((response) => (response.ok ? response.json() : null))
           .then((payload: { title?: string } | null) => {
@@ -177,6 +190,15 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       );
 
       try {
+        const imageParts = await Promise.all(
+          files
+            .filter((file) => file.type.startsWith("image/"))
+            .map(async (file) => ({
+              type: "image_url" as const,
+              image_url: { url: await readAsDataUrl(file) },
+            })),
+        );
+
         const response = await fetch("/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -184,7 +206,15 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             model: model || undefined,
             session_id: sessionId(),
             stream: true,
-            messages: [...history, { role: "user", content }],
+            messages: [
+              ...history,
+              {
+                role: "user",
+                content: imageParts.length
+                  ? [{ type: "text", text: content }, ...imageParts]
+                  : content,
+              },
+            ],
           }),
         });
 
