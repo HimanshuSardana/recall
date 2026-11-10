@@ -143,9 +143,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Shortened, never removed: a snap loses the spatial link between the rail
+     and the content it just resized. */
   [data-slot="sidebar-gap"],
-  [data-slot="sidebar-container"],
-  [data-slot="sidebar-menu-button"],
+  [data-slot="sidebar-container"] {
+    transition-duration: 120ms !important;
+  }
+
   [data-slot="sidebar-group-label"] {
     transition: none !important;
   }
