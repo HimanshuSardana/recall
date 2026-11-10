@@ -129,6 +129,33 @@
   }
 }
 
+/* A new thread arrives under a composer that is already gliding downward, so
+   it fades up instead of snapping into place. */
+.enter-thread {
+  transition:
+    opacity 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@starting-style {
+  .enter-thread {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter-thread {
+    transition-duration: 120ms;
+  }
+
+  @starting-style {
+    .enter-thread {
+      transform: none;
+    }
+  }
+}
+
 /* A transition-* class on the sidebar wrapper would override the width and
    position transitions it ships with, so the panel's colour fade lives here. */
 [data-slot="sidebar-inner"] {
