@@ -191,8 +191,9 @@ export function Composer({ className }: { className?: string }) {
           {attachments.map((attachment) => (
             <figure
               key={attachment.id}
+              data-reveal-host
               className={cn(
-                "enter-pop group w-16",
+                "enter-pop w-16",
                 leaving.includes(attachment.id) && "scale-[0.96] opacity-0",
               )}
             >
@@ -213,9 +214,10 @@ export function Composer({ className }: { className?: string }) {
                 </span>
                 <button
                   type="button"
+                  data-reveal
                   aria-label={`Remove ${attachment.file.name}`}
                   onClick={() => remove(attachment)}
-                  className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-black/55 text-white opacity-0 transition-opacity duration-150 after:absolute after:-inset-1 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
+                  className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-black/55 text-white opacity-0 transition-opacity duration-150 after:absolute after:-inset-1 focus-visible:opacity-100"
                 >
                   <X className="size-3" strokeWidth={2.2} />
                 </button>

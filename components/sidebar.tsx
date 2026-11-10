@@ -1,6 +1,7 @@
 "use client";
 
-import { Ellipsis, Search, SquarePen } from "lucide-react";
+import { Brain, Ellipsis, Search, SquarePen } from "lucide-react";
+import { useState } from "react";
 import {
   SidebarContent,
   SidebarFooter,
@@ -15,6 +16,22 @@ import {
   Sidebar as SidebarShell,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useChat } from "@/components/chat-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -23,7 +40,19 @@ import { groupChats } from "@/lib/chat";
 const nav = [{ label: "New chat", icon: SquarePen }];
 
 export function Sidebar() {
-  const { chats, activeChat, dayStart, loaded, openChat, startNewChat } = useChat();
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
+  const {
+    chats,
+    activeChat,
+    dayStart,
+    loaded,
+    memoriesOpen,
+    openChat,
+    openMemories,
+    startNewChat,
+    togglePin,
+    deleteChat,
+  } = useChat();
   const groups = groupChats(chats, dayStart);
 
   return (
@@ -64,6 +93,17 @@ export function Sidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={memoriesOpen}
+                className="h-7 gap-2 px-2 text-[12px] font-normal text-foreground/80 data-active:font-normal data-active:text-foreground"
+                tooltip="Memories"
+                onClick={openMemories}
+              >
+                <Brain className="text-muted-foreground" strokeWidth={1.7} />
+                Memories
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 
@@ -80,17 +120,41 @@ export function Sidebar() {
               </SidebarGroupLabel>
               <SidebarMenu>
                 {items.map((chat) => (
-                  <SidebarMenuItem key={chat.id}>
+                  <SidebarMenuItem key={chat.id} data-reveal-host>
                     <SidebarMenuButton
                       isActive={chat.id === activeChat?.id}
-                      className="h-6.5 gap-2 px-2 text-[12px] font-normal text-muted-foreground data-active:font-normal data-active:text-foreground"
+                      className="h-6.5 gap-2 pr-7 pl-2 text-[12px] font-normal text-muted-foreground data-active:font-normal data-active:text-foreground"
                       onClick={() => openChat(chat.id)}
                     >
                       <span className="truncate">{chat.title}</span>
-                      {chat.id === activeChat?.id && (
-                        <Ellipsis className="ml-auto size-3.5 shrink-0 text-muted-foreground/70" />
-                      )}
                     </SidebarMenuButton>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <button
+                            type="button"
+                            aria-label={`Actions for ${chat.title}`}
+                            data-reveal
+                            className="absolute top-1/2 right-1 grid size-5 -translate-y-1/2 place-items-center rounded text-muted-foreground/70 opacity-0 transition-[opacity,color] duration-150 hover:text-foreground"
+                          />
+                        }
+                      >
+                        <Ellipsis className="size-3.5" strokeWidth={2} />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" side="bottom" className="w-auto min-w-40">
+                        <DropdownMenuItem className="text-[13px]" onClick={() => togglePin(chat.id)}>
+                          {chat.pinned ? "Unpin chat" : "Pin chat"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          className="text-[13px]"
+                          onClick={() => setPendingDelete({ id: chat.id, title: chat.title })}
+                        >
+                          Delete chat
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
@@ -119,6 +183,38 @@ export function Sidebar() {
         <ThemeToggle />
       </SidebarFooter>
       <SidebarRail />
+
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[15px]">Delete this chat?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[12.5px] leading-relaxed">
+              “{pendingDelete?.title}” and its messages will be removed. The agent will not be able
+              to look this conversation up again. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel size="sm" className="text-[12.5px]">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              size="sm"
+              className="bg-destructive text-[12.5px] text-white hover:bg-destructive/90"
+              onClick={() => {
+                if (pendingDelete) deleteChat(pendingDelete.id);
+                setPendingDelete(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarShell>
   );
 }

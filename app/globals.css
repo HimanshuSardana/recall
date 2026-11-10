@@ -129,6 +129,21 @@
   }
 }
 
+/* Hover-revealed controls. Written as CSS rather than Tailwind's group-hover
+   variant because that compiles to a zero-specificity :where() selector which
+   loses to the control's own opacity-0 utility. */
+[data-reveal-host]:hover [data-reveal],
+[data-reveal-host]:focus-within [data-reveal],
+[data-reveal][aria-expanded="true"] {
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  [data-reveal] {
+    opacity: 1;
+  }
+}
+
 /* Pieces that arrive in place or swap for one another. Transitions rather than
    keyframes, so adding and removing quickly retargets instead of restarting. */
 .enter-pop {
