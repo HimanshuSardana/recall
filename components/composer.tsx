@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUp, ChevronDown, Mic, Plus } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,10 +14,14 @@ import { Textarea } from "@/components/ui/textarea";
 const models = ["Astra Max", "Astra Mini", "Kraken 1.5"];
 
 export function Composer() {
+  const [prompt, setPrompt] = useState("");
+
   return (
-    <div className="w-full max-w-[480px] rounded-[20px] bg-card p-2 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_24px_-18px_rgba(0,0,0,0.15)]">
+    <div className="w-full max-w-[480px] rounded-[20px] bg-card p-2 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_24px_-18px_rgba(0,0,0,0.15)] transition-[background-color,box-shadow] duration-150 ease-out has-focus-visible:ring-2 has-focus-visible:ring-ring/40">
       <Textarea
         rows={2}
+        value={prompt}
+        onChange={(event) => setPrompt(event.target.value)}
         placeholder="How can I help you today?"
         className="min-h-[52px] resize-none border-0 bg-transparent px-2 py-1.5 text-[14px] shadow-none placeholder:text-muted-foreground/80 dark:bg-transparent focus-visible:ring-0"
       />
@@ -36,12 +41,15 @@ export function Composer() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-1 pr-1 pl-1.5 text-[12px] font-medium text-foreground hover:bg-accent"
+                  className="group gap-1 pr-1 pl-1.5 text-[12px] font-medium text-foreground hover:bg-accent"
                 />
               }
             >
               Astra Max
-              <ChevronDown className="size-3 text-muted-foreground" />
+              <ChevronDown
+                className="size-3 text-muted-foreground transition-transform duration-150 ease-out group-aria-expanded:rotate-180"
+                strokeWidth={1.8}
+              />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-auto min-w-36">
               {models.map((model) => (
@@ -62,7 +70,8 @@ export function Composer() {
           <Button
             size="icon-sm"
             aria-label="Send"
-            className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+            disabled={!prompt.trim()}
+            className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-foreground/10 disabled:text-foreground/40 disabled:opacity-100"
           >
             <ArrowUp strokeWidth={2} />
           </Button>
