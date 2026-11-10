@@ -94,6 +94,10 @@ lib/
   models.ts                the model allowlist
 ```
 
+## Design notes
+
+How the agent loop, the memory model and the storage split were decided — and what is deliberately missing — is written up in [DESIGN.md](DESIGN.md).
+
 ## Notes
 
 - **Guest identity** is a year-long `httpOnly` cookie, so memory survives a reload without an account; signing in replaces it with your user id.
