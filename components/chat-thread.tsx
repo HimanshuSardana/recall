@@ -8,26 +8,41 @@ import { Markdown } from "@/components/markdown";
 import type { Message, MessageAttachment } from "@/lib/chat";
 
 function UserAttachments({ attachments }: { attachments: MessageAttachment[] }) {
+  const images = attachments.filter((attachment) => attachment.thumbnail);
+  const files = attachments.filter((attachment) => !attachment.thumbnail);
+
   return (
-    <div className="flex flex-wrap items-start gap-1.5">
-      {attachments.map((attachment, index) =>
-        attachment.thumbnail ? (
-          <img
-            key={`${attachment.name}-${index}`}
-            src={attachment.thumbnail}
-            alt={attachment.name}
-            title={attachment.name}
-            className="max-h-52 w-auto max-w-[260px] rounded-lg object-cover"
-          />
-        ) : (
-          <span
-            key={`${attachment.name}-${index}`}
-            className="inline-flex max-w-[240px] items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground"
-          >
-            <FileText className="size-3.5 shrink-0" strokeWidth={1.7} />
-            <span className="truncate">{attachment.name}</span>
-          </span>
-        ),
+    <div className="flex w-full flex-col gap-1.5">
+      {images.length > 0 && (
+        <div className={images.length > 1 ? "grid grid-cols-2 gap-1.5" : undefined}>
+          {images.map((attachment, index) => (
+            <img
+              key={`${attachment.name}-${index}`}
+              src={attachment.thumbnail}
+              alt={attachment.name}
+              title={attachment.name}
+              className={
+                images.length > 1
+                  ? "aspect-square w-full rounded-lg object-cover"
+                  : "max-h-52 w-full rounded-lg object-cover"
+              }
+            />
+          ))}
+        </div>
+      )}
+
+      {files.length > 0 && (
+        <div className="flex flex-wrap items-start gap-1.5">
+          {files.map((attachment, index) => (
+            <span
+              key={`${attachment.name}-${index}`}
+              className="inline-flex max-w-[240px] items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground"
+            >
+              <FileText className="size-3.5 shrink-0" strokeWidth={1.7} />
+              <span className="truncate">{attachment.name}</span>
+            </span>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -60,15 +75,24 @@ export function ChatThread({
   }, [messages.length, last?.content]);
 
   return (
-    <section className={entering ? "enter-thread min-h-0 flex-1 overflow-y-auto" : "min-h-0 flex-1 overflow-y-auto"}>
-      <div className="mx-auto w-full max-w-[720px] space-y-6 px-2 py-8">
+    <section
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions text"
+      aria-busy={streaming}
+      className={[
+        "min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] [scrollbar-gutter:stable_both-edges]",
+        entering ? "enter-thread" : "",
+      ].join(" ")}
+    >
+      <div className="mx-auto w-full max-w-[720px] space-y-6 py-8">
         {messages.map((message) =>
           message.role === "user" ? (
             <div key={message.id} className="flex justify-end">
               <div
                 className={
                   message.attachments?.length
-                    ? "flex max-w-[80%] flex-col gap-2 rounded-2xl bg-card p-1.5 text-[14px] leading-relaxed text-foreground shadow-sm"
+                    ? "flex w-fit max-w-[80%] flex-col gap-2 rounded-2xl bg-card p-1.5 text-[14px] leading-relaxed text-foreground shadow-sm"
                     : "max-w-[80%] rounded-2xl bg-card px-4 py-2.5 text-[14px] leading-relaxed text-foreground shadow-sm"
                 }
               >
@@ -92,9 +116,15 @@ export function ChatThread({
             <div key={message.id} className="flex gap-3">
               <AssistantMark />
               <div className="min-w-0 flex-1 pt-0.5">
-                <Markdown>{message.content}</Markdown>
-                {streaming && message.id === last?.id && (
-                  <span className="ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 animate-pulse bg-foreground" />
+                {message.content ? (
+                  <Markdown streaming={streaming && message.id === last?.id}>
+                    {message.content}
+                  </Markdown>
+                ) : (
+                  streaming &&
+                  message.id === last?.id && (
+                    <span className="caret-block" aria-hidden="true" />
+                  )
                 )}
               </div>
             </div>

@@ -3,7 +3,14 @@
 /* eslint-disable @next/next/no-img-element -- local previews are blob URLs, not optimizable assets */
 
 import { ArrowUp, Check, ChevronDown, FileText, ImagePlus, Mic, Plus, X } from "lucide-react";
-import { type ClipboardEvent, type DragEvent, type KeyboardEvent, useRef, useState } from "react";
+import {
+  type ClipboardEvent,
+  type DragEvent,
+  type KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useChat } from "@/components/chat-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +46,7 @@ function extension(name: string) {
 }
 
 export function Composer({ className }: { className?: string }) {
-  const { send, streaming, models, model, setModel } = useChat();
+  const { send, stop, streaming, models, model, setModel } = useChat();
   const [prompt, setPrompt] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [rejected, setRejected] = useState("");
@@ -51,6 +58,12 @@ export function Composer({ className }: { className?: string }) {
   const dragDepth = useRef(0);
   const selected = models.find((option) => option.id === model);
   const full = attachments.length >= MAX_ATTACHMENTS;
+
+  useEffect(() => {
+    if (!rejected) return;
+    const timer = window.setTimeout(() => setRejected(""), 4000);
+    return () => window.clearTimeout(timer);
+  }, [rejected]);
 
   const add = (list: FileList | File[] | null) => {
     if (!list?.length) return;
@@ -79,7 +92,7 @@ export function Composer({ className }: { className?: string }) {
       if (attachment.url) URL.revokeObjectURL(attachment.url);
       setAttachments((previous) => previous.filter((item) => item.id !== attachment.id));
       setLeaving((previous) => previous.filter((id) => id !== attachment.id));
-    }, 120);
+    }, 150);
   };
 
   const submit = () => {
@@ -179,7 +192,7 @@ export function Composer({ className }: { className?: string }) {
             <figure
               key={attachment.id}
               className={cn(
-                "group w-16 animate-in fade-in-0 zoom-in-95 duration-150 ease-out transition-[opacity,transform] duration-[120ms] ease-out motion-reduce:transition-none",
+                "enter-pop group w-16",
                 leaving.includes(attachment.id) && "scale-[0.96] opacity-0",
               )}
             >
@@ -195,19 +208,19 @@ export function Composer({ className }: { className?: string }) {
                     <FileText className="size-5" strokeWidth={1.6} />
                   </span>
                 )}
-                <span className="absolute bottom-1 left-1 rounded bg-card/90 px-1 text-[9px] font-medium tracking-wide text-muted-foreground uppercase">
+                <span className="absolute bottom-1 left-1 rounded bg-card/90 px-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                   {extension(attachment.file.name)}
                 </span>
                 <button
                   type="button"
                   aria-label={`Remove ${attachment.file.name}`}
                   onClick={() => remove(attachment)}
-                  className="absolute top-1 right-1 grid size-4 place-items-center rounded-full bg-black/55 text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100"
+                  className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-black/55 text-white opacity-0 transition-opacity duration-150 after:absolute after:-inset-1 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
                 >
                   <X className="size-3" strokeWidth={2.2} />
                 </button>
               </div>
-              <figcaption className="mt-1 truncate text-[10px] text-muted-foreground">
+              <figcaption className="mt-1 truncate text-[11px] text-muted-foreground">
                 {attachment.file.name}
               </figcaption>
             </figure>
@@ -216,7 +229,9 @@ export function Composer({ className }: { className?: string }) {
       )}
 
       {rejected && (
-        <p className="px-2 pb-1 text-[11px] text-muted-foreground">{rejected}</p>
+        <p role="status" className="enter-note px-2 pb-1 text-[11px] text-muted-foreground">
+          {rejected}
+        </p>
       )}
 
       <Textarea
@@ -281,7 +296,7 @@ export function Composer({ className }: { className?: string }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="group gap-1 pr-1 pl-1.5 text-[12px] font-medium text-foreground hover:bg-accent"
+                  className="group gap-1 pr-1 pl-1.5 text-[13px] font-medium text-foreground hover:bg-accent"
                 />
               }
             >
@@ -319,15 +334,26 @@ export function Composer({ className }: { className?: string }) {
           >
             <Mic strokeWidth={1.7} />
           </Button>
-          <Button
-            size="icon-sm"
-            aria-label="Send"
-            onClick={submit}
-            disabled={(!prompt.trim() && attachments.length === 0) || streaming}
-            className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-foreground/10 disabled:text-foreground/40 disabled:opacity-100"
-          >
-            <ArrowUp strokeWidth={2} />
-          </Button>
+          {streaming ? (
+            <Button
+              size="icon-sm"
+              aria-label="Stop"
+              onClick={stop}
+              className="enter-pop rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <span className="size-2.5 rounded-[2px] bg-primary-foreground" />
+            </Button>
+          ) : (
+            <Button
+              size="icon-sm"
+              aria-label="Send"
+              onClick={submit}
+              disabled={!prompt.trim() && attachments.length === 0}
+              className="enter-pop rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-foreground/10 disabled:text-foreground/40 disabled:opacity-100"
+            >
+              <ArrowUp strokeWidth={2} />
+            </Button>
+          )}
         </div>
       </div>
     </div>

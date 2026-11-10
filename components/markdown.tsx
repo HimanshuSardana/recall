@@ -1,6 +1,7 @@
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { cn } from "@/lib/utils";
 
 const components: Components = {
   a: ({ node, ...props }) => (
@@ -36,7 +37,7 @@ const components: Components = {
   pre: ({ node, ...props }) => (
     <pre
       {...props}
-      className="overflow-x-auto rounded-xl bg-foreground/[0.04] p-3 font-mono text-[12.5px] leading-relaxed dark:bg-foreground/[0.07] [&_code]:bg-transparent [&_code]:p-0 [&_code]:text-[12.5px]"
+      className="overflow-x-auto rounded-xl bg-foreground/[0.04] p-3 font-mono text-[12.5px] leading-relaxed dark:bg-foreground/[0.07] [&_code]:bg-transparent [&_code]:p-0 [&_code]:text-[12.5px] [scrollbar-width:thin]"
     />
   ),
   table: ({ node, ...props }) => (
@@ -50,9 +51,14 @@ const components: Components = {
   td: ({ node, ...props }) => <td {...props} className="border-b border-border px-2 py-1.5" />,
 };
 
-export function Markdown({ children }: { children: string }) {
+export function Markdown({ children, streaming = false }: { children: string; streaming?: boolean }) {
   return (
-    <div className="text-[14px] leading-relaxed text-foreground [&>:first-child]:mt-0 [&>:not(:first-child)]:mt-3">
+    <div
+      className={cn(
+        "text-[14px] leading-relaxed text-foreground [&>:first-child]:mt-0 [&>:not(:first-child)]:mt-3",
+        streaming && children && "caret-inline",
+      )}
+    >
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {children}
       </ReactMarkdown>

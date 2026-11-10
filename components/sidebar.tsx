@@ -35,7 +35,7 @@ const nav = [
 ];
 
 export function Sidebar() {
-  const { chats, activeChat, dayStart, openChat, startNewChat } = useChat();
+  const { chats, activeChat, dayStart, loaded, openChat, startNewChat } = useChat();
   const groups = groupChats(chats, dayStart);
 
   return (
@@ -80,7 +80,7 @@ export function Sidebar() {
         </SidebarGroup>
 
         <div className="pb-8 transition-[opacity,visibility] duration-150 ease-out group-data-[collapsible=icon]:invisible group-data-[collapsible=icon]:opacity-0">
-          {groups.length === 0 && (
+          {loaded && groups.length === 0 && (
             <p className="px-3 pt-6 text-[11.5px] leading-relaxed text-muted-foreground">
               No chats yet. Ask something and it will show up here.
             </p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   type Chat,
   type Message,
@@ -20,6 +20,8 @@ type ChatContextValue = {
   dayStart: number;
   streaming: boolean;
   enteringChatId: string | null;
+  loaded: boolean;
+  stop: () => void;
   models: ModelOption[];
   model: string;
   setModel: (id: string) => void;
@@ -72,6 +74,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const [models, setModels] = useState<ModelOption[]>([]);
   const [enteringChatId, setEnteringChatId] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [model, setModelState] = useState("");
 
   useEffect(() => {
@@ -243,8 +246,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           ? [prompt, `Attached: ${names.join(", ")}`].filter(Boolean).join("\n\n")
           : prompt;
 
+        const controller = new AbortController();
+        abortRef.current = controller;
+
         const response = await fetch("/v1/chat/completions", {
           method: "POST",
+          signal: controller.signal,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             model: model || undefined,
@@ -300,12 +307,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           ),
         );
       } catch (error) {
+        if (abortRef.current?.signal.aborted) return;
         appendToAssistant(
           chatId,
           assistantId,
           error instanceof Error ? error.message : "Something went wrong.",
         );
       } finally {
+        abortRef.current = null;
         setStreaming(false);
       }
     };
@@ -316,6 +325,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       dayStart,
       streaming,
       enteringChatId,
+      loaded,
+      stop: () => abortRef.current?.abort(),
       models,
       model,
       setModel: (id: string) => {
@@ -326,7 +337,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       openChat: (id: string) => setActiveId(id),
       send,
     };
-  }, [chats, activeId, dayStart, streaming, enteringChatId, models, model]);
+  }, [chats, activeId, dayStart, streaming, enteringChatId, loaded, models, model]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }

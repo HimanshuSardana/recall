@@ -129,6 +129,61 @@
   }
 }
 
+/* Pieces that arrive in place or swap for one another. Transitions rather than
+   keyframes, so adding and removing quickly retargets instead of restarting. */
+.enter-pop {
+  transition:
+    opacity 150ms ease-out,
+    scale 150ms ease-out;
+}
+
+@starting-style {
+  .enter-pop {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+
+.enter-note {
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
+}
+
+@starting-style {
+  .enter-note {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+/* A caret that blinks fully off reads as a cursor; one that hovers at half
+   opacity reads as a rendering artifact. */
+.caret-inline > :last-child::after,
+.caret-block {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  border-radius: 1px;
+  translate: 0 0.15em;
+  background: currentColor;
+  animation: caret-blink 1s steps(1, end) infinite;
+}
+
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Markdown code blocks scroll horizontally too; keep that bar quiet. */
+pre {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
 /* A new thread arrives under a composer that is already gliding downward, so
    it fades up instead of snapping into place. */
 .enter-thread {
@@ -145,6 +200,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .enter-pop,
+  .enter-note,
+  .caret-inline > :last-child::after,
+  .caret-block {
+    animation: none;
+    transition: none;
+  }
+
   .enter-thread {
     transition-duration: 120ms;
   }
