@@ -44,7 +44,7 @@ export function Sidebar() {
       collapsible="icon"
       className="transition-colors duration-150"
     >
-      <SidebarHeader className="h-9 flex-row items-center gap-2 px-1.5 py-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+      <SidebarHeader className="h-9 flex-row items-center gap-2 pr-1.5 pl-4 py-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
         <svg
           viewBox="0 0 12 14"
           className="h-3.5 w-3 shrink-0 fill-foreground group-data-[collapsible=icon]:hidden"
