@@ -2,11 +2,21 @@ export type Role = "user" | "assistant";
 
 export type MessageAttachment = { name: string; type: string; thumbnail?: string };
 
+export type ToolCall = {
+  name: string;
+  query: string;
+  results: number;
+  sources?: { title: string; url: string }[];
+};
+
 export type Message = {
   id: string;
   role: Role;
   content: string;
   attachments?: MessageAttachment[];
+  reasoning?: string;
+  reasoningMs?: number;
+  toolCalls?: ToolCall[];
 };
 
 export type Chat = {

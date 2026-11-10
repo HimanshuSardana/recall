@@ -2,10 +2,10 @@
 
 /* eslint-disable @next/next/no-img-element -- stored thumbnails are data URLs, not optimizable assets */
 
-import { FileText } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ChevronDown, ChevronRight, FileText } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Markdown } from "@/components/markdown";
-import type { Message, MessageAttachment } from "@/lib/chat";
+import type { Message, MessageAttachment, ToolCall } from "@/lib/chat";
 
 function UserAttachments({ attachments }: { attachments: MessageAttachment[] }) {
   const images = attachments.filter((attachment) => attachment.thumbnail);
@@ -45,6 +45,128 @@ function UserAttachments({ attachments }: { attachments: MessageAttachment[] }) 
         </div>
       )}
     </div>
+  );
+}
+
+const domainOf = (url: string) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+};
+
+function ToolSources({ calls }: { calls: ToolCall[] }) {
+  const [open, setOpen] = useState(false);
+
+  const sources = calls
+    .flatMap((call) =>
+      (call.sources ?? []).map((source) => ({ ...source, query: call.query })),
+    )
+    .filter(
+      (source, index, all) => all.findIndex((other) => other.url === source.url) === index,
+    );
+
+  const searched = calls.length;
+  const empty = calls.filter((call) => call.results === 0).length;
+
+  if (searched === 0) return null;
+
+  if (sources.length === 0) {
+    return (
+      <p className="mt-2 text-[11.5px] text-muted-foreground/80">
+        Searched the web {searched === 1 ? "once" : `${searched} times`} · no usable results
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex -space-x-1.5">
+          {sources.slice(0, 5).map((source) => (
+            <span
+              key={source.url}
+              title={`${source.title} — ${domainOf(source.url)}`}
+              className="grid size-5 place-items-center rounded-full border border-card bg-muted text-[9px] font-medium text-muted-foreground uppercase"
+            >
+              {domainOf(source.url)[0] ?? "•"}
+            </span>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+          className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground transition-colors duration-150 hover:text-foreground"
+        >
+          {sources.length} {sources.length === 1 ? "source" : "sources"} from {searched}{" "}
+          {searched === 1 ? "search" : "searches"}
+          <ChevronDown
+            className={
+              open
+                ? "size-3 rotate-180 transition-transform duration-150 ease-out"
+                : "size-3 transition-transform duration-150 ease-out"
+            }
+            strokeWidth={2}
+          />
+        </button>
+      </div>
+
+      {open && (
+        <div className="enter-pop mt-2 border-t border-border pt-2">
+          <ul className="flex flex-col gap-2">
+            {sources.map((source) => (
+              <li key={source.url} className="flex items-start gap-2">
+                <span className="mt-0.5 grid size-4 shrink-0 place-items-center rounded bg-muted text-[8px] font-medium text-muted-foreground uppercase">
+                  {domainOf(source.url)[0] ?? "•"}
+                </span>
+                <div className="min-w-0">
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block truncate text-[12px] underline underline-offset-2 hover:text-muted-foreground"
+                  >
+                    {source.title || domainOf(source.url)}
+                  </a>
+                  <p className="text-[10.5px] text-muted-foreground/70">
+                    {domainOf(source.url)} · from “{source.query}”
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {empty > 0 && (
+            <p className="mt-2 text-[11px] text-muted-foreground/70">
+              {empty} {empty === 1 ? "search" : "searches"} returned nothing
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Reasoning({ text, live, ms }: { text: string; live: boolean; ms?: number }) {
+  const seconds = ms ? Math.max(1, Math.round(ms / 1000)) : null;
+  const label = live ? "Thinking" : seconds ? `Thought for ${seconds}s` : "Thought";
+
+  return (
+    <details className="group mb-2">
+      <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-[11.5px] text-muted-foreground select-none hover:text-foreground [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          className="size-3 transition-transform duration-150 ease-out group-open:rotate-90"
+          strokeWidth={2}
+        />
+        {label}
+      </summary>
+      <p className="mt-1.5 border-l-2 border-border pl-2.5 text-[12.5px] leading-relaxed whitespace-pre-wrap text-muted-foreground">
+        {text}
+      </p>
+    </details>
   );
 }
 
@@ -116,6 +238,14 @@ export function ChatThread({
             <div key={message.id} className="flex gap-3">
               <AssistantMark />
               <div className="min-w-0 flex-1 pt-0.5">
+                {message.reasoning ? (
+                  <Reasoning
+                    text={message.reasoning}
+                    live={streaming && message.id === last?.id && !message.content}
+                    ms={message.reasoningMs}
+                  />
+                ) : null}
+
                 {message.content ? (
                   <Markdown streaming={streaming && message.id === last?.id}>
                     {message.content}
@@ -126,6 +256,8 @@ export function ChatThread({
                     <span className="caret-block" aria-hidden="true" />
                   )
                 )}
+
+                {message.toolCalls?.length ? <ToolSources calls={message.toolCalls} /> : null}
               </div>
             </div>
           ),

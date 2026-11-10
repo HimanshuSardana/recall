@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import {
   type Chat,
   type Message,
+  type ToolCall,
   loadChats,
   newId,
   saveChats,
@@ -122,19 +123,26 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<ChatContextValue>(() => {
     const activeChat = chats.find((chat) => chat.id === activeId) ?? null;
 
-    const appendToAssistant = (chatId: string, messageId: string, content: string) =>
+    const patchAssistant = (
+      chatId: string,
+      messageId: string,
+      patch: Partial<Pick<Message, "content" | "reasoning" | "reasoningMs" | "toolCalls">>,
+    ) =>
       setChats((previous) =>
         previous.map((chat) =>
           chat.id === chatId
             ? {
                 ...chat,
                 messages: chat.messages.map((message) =>
-                  message.id === messageId ? { ...message, content } : message,
+                  message.id === messageId ? { ...message, ...patch } : message,
                 ),
               }
             : chat,
         ),
       );
+
+    const appendToAssistant = (chatId: string, messageId: string, content: string) =>
+      patchAssistant(chatId, messageId, { content });
 
     const send = async (text: string, files: File[] = []) => {
       const prompt = text.trim();
@@ -232,6 +240,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         ),
       );
 
+      let thinkingSince: number | null = null;
+
       try {
         const imageParts = await Promise.all(
           files
@@ -277,6 +287,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         const decoder = new TextDecoder();
         let buffer = "";
         let reply = "";
+        let reasoning = "";
+        const toolCalls: ToolCall[] = [];
 
         for (;;) {
           const { done, value } = await reader.read();
@@ -293,11 +305,29 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             const payload = line.slice(5).trim();
             if (payload === "[DONE]") continue;
 
-            const delta = JSON.parse(payload).choices?.[0]?.delta?.content;
-            if (!delta) continue;
+            const chunk = JSON.parse(payload);
 
-            reply += delta;
-            appendToAssistant(chatId, assistantId, reply);
+            const reasoningDelta = chunk.choices?.[0]?.delta?.reasoning_content;
+            if (typeof reasoningDelta === "string" && reasoningDelta) {
+              reasoning += reasoningDelta;
+              thinkingSince ??= Date.now();
+              patchAssistant(chatId, assistantId, {
+                reasoning: reasoning.slice(-4000),
+                reasoningMs: Date.now() - thinkingSince,
+              });
+            }
+
+            const tool = chunk.kraken?.tool as ToolCall | undefined;
+            if (tool) {
+              toolCalls.push(tool);
+              patchAssistant(chatId, assistantId, { toolCalls: [...toolCalls] });
+            }
+
+            const delta = chunk.choices?.[0]?.delta?.content;
+            if (typeof delta === "string" && delta) {
+              reply += delta;
+              patchAssistant(chatId, assistantId, { content: reply });
+            }
           }
         }
 
@@ -314,6 +344,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           error instanceof Error ? error.message : "Something went wrong.",
         );
       } finally {
+        if (thinkingSince !== null) {
+          patchAssistant(chatId, assistantId, { reasoningMs: Date.now() - thinkingSince });
+        }
         abortRef.current = null;
         setStreaming(false);
       }
