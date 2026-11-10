@@ -7,15 +7,21 @@ import {
   loadChats,
   newId,
   saveChats,
+  sessionId,
   startOfDay,
   titleFrom,
 } from "@/lib/chat";
+
+type ModelOption = { id: string; label: string };
 
 type ChatContextValue = {
   chats: Chat[];
   activeChat: Chat | null;
   dayStart: number;
   streaming: boolean;
+  models: ModelOption[];
+  model: string;
+  setModel: (id: string) => void;
   startNewChat: () => void;
   openChat: (id: string) => void;
   send: (text: string) => Promise<void>;
@@ -35,6 +41,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [models, setModels] = useState<ModelOption[]>([]);
+  const [model, setModelState] = useState("");
 
   useEffect(() => {
     // localStorage is only readable on the client, so the first paint has no
@@ -43,6 +51,33 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setChats(loadChats());
     setDayStart(startOfDay(new Date()));
     setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/v1/models")
+      .then((response) => response.json())
+      .then((payload: { data?: { id: string; name?: string }[] }) => {
+        if (cancelled) return;
+
+        const options = (payload.data ?? []).map((entry) => ({
+          id: entry.id,
+          label: entry.name ?? entry.id,
+        }));
+        if (options.length === 0) return;
+
+        const saved = localStorage.getItem("kraken.model");
+        setModels(options);
+        setModelState(
+          options.some((option) => option.id === saved) ? saved! : options[0].id,
+        );
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -127,7 +162,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "astra-max",
+            model: model || undefined,
+            session_id: sessionId(),
             stream: true,
             messages: [...history, { role: "user", content }],
           }),
@@ -186,11 +222,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       activeChat,
       dayStart,
       streaming,
+      models,
+      model,
+      setModel: (id: string) => {
+        setModelState(id);
+        localStorage.setItem("kraken.model", id);
+      },
       startNewChat: () => setActiveId(null),
       openChat: (id: string) => setActiveId(id),
       send,
     };
-  }, [chats, activeId, dayStart, streaming]);
+  }, [chats, activeId, dayStart, streaming, models, model]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }

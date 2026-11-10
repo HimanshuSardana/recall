@@ -16,6 +16,16 @@ const DAY = 24 * 60 * 60 * 1000;
 
 export const newId = () => crypto.randomUUID();
 
+export function sessionId() {
+  const key = "kraken.session";
+  const existing = localStorage.getItem(key);
+  if (existing) return existing;
+
+  const id = crypto.randomUUID();
+  localStorage.setItem(key, id);
+  return id;
+}
+
 export function titleFrom(text: string) {
   const clean = text.trim().replace(/\s+/g, " ");
   if (!clean) return "New chat";

@@ -4,8 +4,11 @@ type ChatRequest = {
   model?: string;
   messages?: ChatMessage[];
   stream?: boolean;
+  session_id?: string;
 };
 
+const BASE_URL = process.env.OPENAI_BASE_URL?.replace(/\/+$/, "");
+const API_KEY = process.env.OPENAI_API_KEY;
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "astra-max";
 
 function invalid(message: string) {
@@ -26,7 +29,7 @@ function mockReply(messages: ChatMessage[]) {
   return [
     "This is a mock reply, no model is wired up yet.",
     gist ? `You said: "${gist}".` : "I could not find a question in that request.",
-    "The endpoint already speaks the OpenAI wire format, so a real provider only needs to replace the mock below.",
+    "Set OPENAI_API_KEY and OPENAI_BASE_URL to talk to a real provider.",
   ].join(" ");
 }
 
@@ -42,9 +45,33 @@ export async function POST(request: Request) {
     return invalid("`messages` must be a non-empty array.");
   }
 
+  const model = body.model || DEFAULT_MODEL;
+
+  if (BASE_URL && API_KEY) {
+    // A provider is configured, so this is a thin proxy: the upstream response
+    // is passed through untouched, which keeps SSE framing and error shapes.
+    const upstream = await fetch(`${BASE_URL}/chat/completions`, {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_KEY}`,
+        "x-opencode-session": body.session_id || crypto.randomUUID(),
+      },
+      body: JSON.stringify({ ...body, model }),
+    });
+
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: {
+        "Content-Type": upstream.headers.get("content-type") ?? "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+      },
+    });
+  }
+
   const id = `chatcmpl-${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`;
   const created = Math.floor(Date.now() / 1000);
-  const model = body.model || DEFAULT_MODEL;
   const reply = mockReply(body.messages);
 
   if (body.stream === false) {

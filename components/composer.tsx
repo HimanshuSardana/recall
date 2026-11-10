@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, ChevronDown, Mic, Plus } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, Mic, Plus } from "lucide-react";
 import { type KeyboardEvent, useState } from "react";
 import { useChat } from "@/components/chat-provider";
 import { Button } from "@/components/ui/button";
@@ -13,11 +13,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-const models = ["Astra Max", "Astra Mini", "Kraken 1.5"];
-
 export function Composer({ className }: { className?: string }) {
-  const { send, streaming } = useChat();
+  const { send, streaming, models, model, setModel } = useChat();
   const [prompt, setPrompt] = useState("");
+  const selected = models.find((option) => option.id === model);
 
   const submit = () => {
     if (!prompt.trim() || streaming) return;
@@ -67,16 +66,28 @@ export function Composer({ className }: { className?: string }) {
                 />
               }
             >
-              Astra Max
+              {selected?.label ?? "Model"}
               <ChevronDown
                 className="size-3 text-muted-foreground transition-transform duration-150 ease-out group-aria-expanded:rotate-180"
                 strokeWidth={1.8}
               />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-auto min-w-36">
-              {models.map((model) => (
-                <DropdownMenuItem key={model} className="text-[13px]">
-                  {model}
+            <DropdownMenuContent align="end" className="w-auto min-w-44">
+              {models.length === 0 && (
+                <DropdownMenuItem disabled className="text-[13px]">
+                  No models available
+                </DropdownMenuItem>
+              )}
+              {models.map((option) => (
+                <DropdownMenuItem
+                  key={option.id}
+                  className="gap-2 text-[13px]"
+                  onClick={() => setModel(option.id)}
+                >
+                  <span className="truncate">{option.label}</span>
+                  {option.id === model && (
+                    <Check className="ml-auto size-3.5 text-muted-foreground" />
+                  )}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
