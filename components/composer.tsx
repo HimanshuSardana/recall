@@ -1,7 +1,8 @@
 "use client";
 
 import { ArrowUp, ChevronDown, Mic, Plus } from "lucide-react";
-import { useState } from "react";
+import { type KeyboardEvent, useState } from "react";
+import { useChat } from "@/components/chat-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,18 +11,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 const models = ["Astra Max", "Astra Mini", "Kraken 1.5"];
 
-export function Composer() {
+export function Composer({ className }: { className?: string }) {
+  const { send, streaming } = useChat();
   const [prompt, setPrompt] = useState("");
 
+  const submit = () => {
+    if (!prompt.trim() || streaming) return;
+    void send(prompt);
+    setPrompt("");
+  };
+
+  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      submit();
+    }
+  };
+
   return (
-    <div className="w-full max-w-[480px] rounded-[20px] bg-card p-2 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_24px_-18px_rgba(0,0,0,0.15)] transition-[background-color,box-shadow] duration-150 ease-out has-focus-visible:ring-2 has-focus-visible:ring-ring/40">
+    <div
+      className={cn(
+        "w-full rounded-[20px] bg-card p-2 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_24px_-18px_rgba(0,0,0,0.15)] transition-[background-color,box-shadow] duration-150 ease-out has-focus-visible:ring-2 has-focus-visible:ring-ring/40",
+        className,
+      )}
+    >
       <Textarea
         rows={2}
         value={prompt}
         onChange={(event) => setPrompt(event.target.value)}
+        onKeyDown={onKeyDown}
         placeholder="How can I help you today?"
         className="min-h-[52px] resize-none border-0 bg-transparent px-2 py-1.5 text-[14px] shadow-none placeholder:text-muted-foreground/80 dark:bg-transparent focus-visible:ring-0"
       />
@@ -70,7 +92,8 @@ export function Composer() {
           <Button
             size="icon-sm"
             aria-label="Send"
-            disabled={!prompt.trim()}
+            onClick={submit}
+            disabled={!prompt.trim() || streaming}
             className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-foreground/10 disabled:text-foreground/40 disabled:opacity-100"
           >
             <ArrowUp strokeWidth={2} />

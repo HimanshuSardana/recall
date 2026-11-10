@@ -1,3 +1,5 @@
+"use client";
+
 import {
   BookText,
   Ellipsis,
@@ -21,9 +23,9 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useChat } from "@/components/chat-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
-
-type Chat = { title: string; active?: boolean };
+import { groupChats } from "@/lib/chat";
 
 const nav = [
   { label: "New chat", icon: SquarePen },
@@ -32,71 +34,35 @@ const nav = [
   { label: "Plugins", icon: Plug },
 ];
 
-const sections: { label: string; chats: Chat[] }[] = [
-  {
-    label: "Pinned",
-    chats: [
-      { title: "Review Q3 Support Report", active: true },
-      { title: "Onboarding IT Checklist" },
-    ],
-  },
-  {
-    label: "Today",
-    chats: [
-      { title: "VPN Not Connecting" },
-      { title: "Reset My Okta MFA" },
-      { title: "Slack Notifications Issue" },
-    ],
-  },
-  {
-    label: "Yesterday",
-    chats: [
-      { title: "Wi-Fi Keeps Disconnecting" },
-      { title: "Request Jira Access" },
-    ],
-  },
-  {
-    label: "Previous week",
-    chats: [
-      { title: "MacBook Running Slowly" },
-      { title: "Set Up New Monitor" },
-      { title: "GitHub Access Request" },
-      { title: "Password Reset Help" },
-      { title: "Install Figma Desktop" },
-      { title: "Zoom Camera Not Working" },
-      { title: "Connect to Office Printer" },
-      { title: "Update macOS Safely" },
-      { title: "Recover Deleted File" },
-    ],
-  },
-];
-
 export function Sidebar() {
+  const { chats, activeChat, dayStart, openChat, startNewChat } = useChat();
+  const groups = groupChats(chats, dayStart);
+
   return (
     <SidebarShell
       variant="inset"
       collapsible="icon"
       className="transition-colors duration-150"
     >
-      <SidebarHeader className="flex-row items-center gap-2 px-1.5 pt-1 pb-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+      <SidebarHeader className="h-9 flex-row items-center gap-2 px-1.5 py-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
         <svg
           viewBox="0 0 12 14"
           className="h-3.5 w-3 shrink-0 fill-foreground group-data-[collapsible=icon]:hidden"
         >
           <path d="M1 1h10L6.8 7 11 13H1l4.2-6z" />
         </svg>
-        <span className="text-[12.5px] font-semibold tracking-tight text-foreground group-data-[collapsible=icon]:hidden">
+        <span className="text-[12.5px] leading-none font-semibold tracking-tight text-foreground group-data-[collapsible=icon]:hidden">
           Kraken
         </span>
         <Button
           variant="ghost"
           size="icon-sm"
           aria-label="Search"
-          className="ml-auto text-muted-foreground hover:bg-accent group-data-[collapsible=icon]:hidden"
+          className="ml-auto size-7 text-muted-foreground hover:bg-accent group-data-[collapsible=icon]:hidden"
         >
           <Search strokeWidth={1.7} />
         </Button>
-        <SidebarTrigger className="text-muted-foreground hover:bg-accent" />
+        <SidebarTrigger className="size-7 text-muted-foreground hover:bg-accent" />
       </SidebarHeader>
 
       <SidebarContent className="px-1 [mask-image:linear-gradient(to_bottom,black,black_calc(100%-28px),transparent)] group-data-[collapsible=icon]:px-0">
@@ -107,6 +73,7 @@ export function Sidebar() {
                 <SidebarMenuButton
                   className="h-7 gap-2 px-2 text-[12px] font-normal text-foreground/80"
                   tooltip={label}
+                  onClick={label === "New chat" ? startNewChat : undefined}
                 >
                   <Icon className="text-muted-foreground" strokeWidth={1.7} />
                   {label}
@@ -117,20 +84,26 @@ export function Sidebar() {
         </SidebarGroup>
 
         <div className="pb-8 transition-[opacity,visibility] duration-150 ease-out group-data-[collapsible=icon]:invisible group-data-[collapsible=icon]:opacity-0">
-          {sections.map(({ label, chats }) => (
+          {groups.length === 0 && (
+            <p className="px-3 pt-6 text-[11.5px] leading-relaxed text-muted-foreground">
+              No chats yet. Ask something and it will show up here.
+            </p>
+          )}
+          {groups.map(({ label, chats: items }) => (
             <SidebarGroup key={label} className="p-1">
               <SidebarGroupLabel className="h-6 px-2 text-[10.5px] font-semibold text-foreground">
                 {label}
               </SidebarGroupLabel>
               <SidebarMenu>
-                {chats.map((chat) => (
-                  <SidebarMenuItem key={chat.title}>
+                {items.map((chat) => (
+                  <SidebarMenuItem key={chat.id}>
                     <SidebarMenuButton
-                      isActive={chat.active}
+                      isActive={chat.id === activeChat?.id}
                       className="h-6.5 gap-2 px-2 text-[12px] font-normal text-muted-foreground data-active:font-normal data-active:text-foreground"
+                      onClick={() => openChat(chat.id)}
                     >
                       <span className="truncate">{chat.title}</span>
-                      {chat.active && (
+                      {chat.id === activeChat?.id && (
                         <Ellipsis className="ml-auto size-3.5 shrink-0 text-muted-foreground/70" />
                       )}
                     </SidebarMenuButton>
