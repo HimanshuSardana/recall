@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Markdown } from "@/components/markdown";
 import type { Message } from "@/lib/chat";
 
 function AssistantMark() {
@@ -40,12 +41,12 @@ export function ChatThread({
           ) : (
             <div key={message.id} className="flex gap-3">
               <AssistantMark />
-              <p className="pt-0.5 text-[14px] leading-relaxed whitespace-pre-wrap text-foreground">
-                {message.content}
+              <div className="min-w-0 flex-1 pt-0.5">
+                <Markdown>{message.content}</Markdown>
                 {streaming && message.id === last?.id && (
                   <span className="ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 animate-pulse bg-foreground" />
                 )}
-              </p>
+              </div>
             </div>
           ),
         )}
