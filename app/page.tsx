@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AuthButton } from "@/components/auth-button";
 import { LandingMotion } from "@/components/landing-motion";
+import { OpenChatMenu } from "@/components/open-chat-menu";
 import { Mark } from "@/components/mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ChatLink } from "@/components/transition-link";
@@ -89,18 +89,8 @@ export default function Landing() {
         </nav>
 
         <div className="flex items-center gap-1">
-          <AuthButton
-            className="h-7 rounded-full px-2.5 text-[12px] text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
-            signedOutLabel="Sign in"
-            signedInLabel="Sign out"
-          />
-          <ThemeToggle className="ml-0" />
-          <ChatLink
-            className="ml-1 inline-flex h-8 items-center rounded-full bg-primary px-3.5 text-[12.5px] font-medium text-primary-foreground transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.97]"
-            href="/chat"
-          >
-            Open chat
-          </ChatLink>
+          <ThemeToggle className="mr-1" />
+          <OpenChatMenu />
         </div>
       </header>
 

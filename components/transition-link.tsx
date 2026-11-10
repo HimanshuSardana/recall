@@ -8,33 +8,11 @@ type DocumentWithTransitions = Document & {
 };
 
 /** Navigates inside a view transition so the next page slides in from the
- *  right, and falls back to a plain push for reduced motion, modified clicks
- *  or browsers without the API. */
-export function ChatLink({
-  href,
-  className,
-  children,
-}: {
-  href: string;
-  className?: string;
-  children: ReactNode;
-}) {
+ *  right. Falls back to a plain push for reduced motion or no support. */
+export function useSlideTo() {
   const router = useRouter();
 
-  const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (
-      event.defaultPrevented ||
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-
+  return (href: string) => {
     const doc = document as DocumentWithTransitions;
     const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -52,6 +30,34 @@ export function ChatLink({
           window.setTimeout(resolve, 160);
         }),
     );
+  };
+}
+
+export function ChatLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const slideTo = useSlideTo();
+
+  const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    slideTo(href);
   };
 
   return (
