@@ -6,7 +6,7 @@ type ChatRequest = {
   stream?: boolean;
 };
 
-const DEFAULT_MODEL = "astra-max";
+const DEFAULT_MODEL = process.env.OPENAI_MODEL || "astra-max";
 
 function invalid(message: string) {
   return Response.json(
