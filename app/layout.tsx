@@ -28,7 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="min-h-full">
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider delay={250}>{children}</TooltipProvider>
       </body>
     </html>
   );

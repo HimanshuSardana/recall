@@ -122,8 +122,35 @@
   }
   body {
     @apply bg-background text-foreground;
+    transition: background-color 150ms ease, color 150ms ease;
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* The keyboard toggle sets this so a repeated action collapses instantly. */
+[data-instant] [data-slot="sidebar-gap"],
+[data-instant] [data-slot="sidebar-container"],
+[data-instant] [data-slot="sidebar-menu-button"] {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="sidebar-gap"],
+  [data-slot="sidebar-container"],
+  [data-slot="sidebar-menu-button"],
+  [data-slot="sidebar-group-label"] {
+    transition: none !important;
+  }
+
+  [data-slot="tooltip-content"],
+  [data-slot="dropdown-menu-content"] {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  [data-slot="button"] {
+    transition-property: color, background-color, border-color, box-shadow, opacity;
   }
 }

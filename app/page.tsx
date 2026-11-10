@@ -11,7 +11,7 @@ export default function Home() {
       style={{ "--sidebar-width-icon": "2rem" } as CSSProperties}
     >
       <Sidebar />
-      <SidebarInset className="relative items-center justify-center bg-background px-6 md:ml-0!">
+      <SidebarInset className="relative items-center justify-center bg-background px-6 transition-colors duration-150 md:ml-0!">
         <Button className="absolute top-3 right-3 h-7 rounded-full bg-primary px-3 text-[12px] font-medium text-primary-foreground hover:bg-primary/90">
           Get Pro
         </Button>

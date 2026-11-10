@@ -73,7 +73,11 @@ const sections: { label: string; chats: Chat[] }[] = [
 
 export function Sidebar() {
   return (
-    <SidebarShell variant="inset" collapsible="icon">
+    <SidebarShell
+      variant="inset"
+      collapsible="icon"
+      className="transition-colors duration-150"
+    >
       <SidebarHeader className="flex-row items-center gap-2 px-1.5 pt-1 pb-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
         <svg
           viewBox="0 0 12 14"
@@ -95,7 +99,7 @@ export function Sidebar() {
         <SidebarTrigger className="text-muted-foreground hover:bg-accent" />
       </SidebarHeader>
 
-      <SidebarContent className="px-1 group-data-[collapsible=icon]:px-0">
+      <SidebarContent className="px-1 [mask-image:linear-gradient(to_bottom,black,black_calc(100%-28px),transparent)] group-data-[collapsible=icon]:px-0">
         <SidebarGroup className="p-1 group-data-[collapsible=icon]:p-0">
           <SidebarMenu>
             {nav.map(({ label, icon: Icon }) => (
@@ -112,7 +116,7 @@ export function Sidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        <div className="group-data-[collapsible=icon]:hidden">
+        <div className="pb-8 transition-[opacity,visibility] duration-150 ease-out group-data-[collapsible=icon]:invisible group-data-[collapsible=icon]:opacity-0">
           {sections.map(({ label, chats }) => (
             <SidebarGroup key={label} className="p-1">
               <SidebarGroupLabel className="h-6 px-2 text-[10.5px] font-semibold text-foreground">

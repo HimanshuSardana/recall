@@ -1,29 +1,31 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
-
   return (
     <Button
       variant="ghost"
       size="icon-sm"
-      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label="Toggle dark mode"
       className="ml-auto text-muted-foreground hover:bg-accent group-data-[collapsible=icon]:hidden"
       onClick={() => {
-        setDark(!dark);
-        document.documentElement.classList.toggle("dark", !dark);
-        localStorage.setItem("theme", dark ? "light" : "dark");
+        const dark = !document.documentElement.classList.contains("dark");
+        document.documentElement.classList.toggle("dark", dark);
+        localStorage.setItem("theme", dark ? "dark" : "light");
       }}
     >
-      {dark ? <Sun strokeWidth={1.7} /> : <Moon strokeWidth={1.7} />}
+      <span className="relative size-4">
+        <Moon
+          className="absolute inset-0 size-4 transition-[transform,opacity] duration-150 ease-out dark:scale-90 dark:opacity-0"
+          strokeWidth={1.7}
+        />
+        <Sun
+          className="absolute inset-0 size-4 -rotate-90 scale-90 opacity-0 transition-[transform,opacity] duration-150 ease-out dark:rotate-0 dark:scale-100 dark:opacity-100"
+          strokeWidth={1.7}
+        />
+      </span>
     </Button>
   );
 }
